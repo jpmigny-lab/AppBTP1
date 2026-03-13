@@ -14,13 +14,14 @@ Application professionnelle pour la gestion de chantiers et devis avec design gl
 1. **Connecter le dépôt GitHub à Vercel**
    - Allez sur [vercel.com](https://vercel.com)
    - Cliquez sur "New Project"
-   - Importez le dépôt `MorganGIT3/PLANCHAIS-app`
+   - Importez le dépôt GitHub (ex. `jpmigny-lab/AppBTP1`)
 
 2. **Configuration automatique**
-   - Vercel détectera automatiquement la configuration depuis `vercel.json`
+   - Vercel utilise la configuration dans `vercel.json` et `.nvmrc` (Node 20)
    - Build Command: `npm run build`
    - Output Directory: `dist/public`
    - Install Command: `npm install`
+   - Le déploiement sert uniquement le front (SPA) ; pas de serveur Express sur Vercel.
 
 3. **Variables d'environnement (si nécessaire)**
    - Ajoutez vos variables d'environnement dans les paramètres du projet Vercel
