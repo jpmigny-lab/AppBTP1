@@ -18,14 +18,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-white">Chargement...</div>
+      <div className="relative z-10 flex items-center justify-center min-h-screen w-full">
+        <div className="text-white drop-shadow-lg">Chargement...</div>
       </div>
     );
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="fixed inset-0 z-10 flex items-center justify-center bg-transparent">
+        <div className="text-white drop-shadow-lg">Redirection vers la connexion...</div>
+      </div>
+    );
   }
 
   return <>{children}</>;

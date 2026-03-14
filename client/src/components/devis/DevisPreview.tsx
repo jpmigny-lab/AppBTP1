@@ -9,8 +9,8 @@ export function DevisPreview() {
   const [debouncedState] = useDebounce<DevisState>(state, 400);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 sticky top-0">
-      <div className="bg-white border-b px-4 py-2 text-sm font-medium text-gray-600 shrink-0">
+    <div className="flex flex-col h-screen bg-transparent sticky top-0">
+      <div className="bg-black/20 backdrop-blur-xl border-b border-white/10 px-4 py-2 text-sm font-medium text-white shrink-0">
         Aperçu en temps réel
       </div>
 
@@ -20,14 +20,14 @@ export function DevisPreview() {
         {({ blob, url, loading, error }) => {
           if (loading) {
             return (
-              <div className="flex-1 flex items-center justify-center text-gray-400">
+              <div className="flex-1 flex items-center justify-center text-white/70">
                 Génération de l'aperçu...
               </div>
             );
           }
           if (error || !url) {
             return (
-              <div className="flex-1 flex items-center justify-center text-red-400 text-sm px-4">
+              <div className="flex-1 flex items-center justify-center text-red-300 text-sm px-4">
                 Erreur d'aperçu. Vérifiez les données saisies.
               </div>
             );

@@ -73,30 +73,30 @@ export function LignePrestation({ ligne, dragHandleProps }: Props) {
 
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-12 gap-2 items-end p-3 bg-muted/30 rounded-lg border">
+      <div className="grid grid-cols-12 gap-3 items-end p-4 bg-muted/30 rounded-lg border">
         <div
-          className="col-span-1 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+          className="col-span-1 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none self-center"
           {...dragHandleProps}
         >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div className="col-span-4 space-y-1">
-          <Label className="text-xs">Désignation</Label>
+        <div className="col-span-4 space-y-1.5">
+          <Label className="text-sm">Désignation</Label>
           <Input
             ref={designationRef}
             value={ligne.designation}
             onChange={(e) => handleDesignationChange(e.target.value)}
             placeholder="Ex. Pose carrelage sol"
-            className="h-8 text-sm"
+            className="h-10 text-base min-w-0"
           />
         </div>
-        <div className="col-span-1 space-y-1">
-          <Label className="text-xs">Unité</Label>
+        <div className="col-span-1 space-y-1.5">
+          <Label className="text-sm">Unité</Label>
           <Select
             value={ligne.unite}
             onValueChange={(v) => updateLigne(ligne.id, { unite: v as Unite })}
           >
-            <SelectTrigger className="h-8 text-sm">
+            <SelectTrigger className="h-10 text-base min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -108,8 +108,8 @@ export function LignePrestation({ ligne, dragHandleProps }: Props) {
             </SelectContent>
           </Select>
         </div>
-        <div className="col-span-1 space-y-1">
-          <Label className="text-xs">Qté</Label>
+        <div className="col-span-1 space-y-1.5">
+          <Label className="text-sm">Qté</Label>
           <Input
             type="number"
             min={0}
@@ -120,11 +120,11 @@ export function LignePrestation({ ligne, dragHandleProps }: Props) {
                 quantite: parseFloat(e.target.value) || 0,
               })
             }
-            className="h-8 text-sm"
+            className="h-10 text-base min-w-0"
           />
         </div>
-        <div className="col-span-1.5 space-y-1">
-          <Label className="text-xs">PU HT (€)</Label>
+        <div className="col-span-1.5 space-y-1.5">
+          <Label className="text-sm">PU HT (€)</Label>
           <Input
             type="number"
             min={0}
@@ -135,11 +135,11 @@ export function LignePrestation({ ligne, dragHandleProps }: Props) {
                 prixUnitaireHT: parseFloat(e.target.value) || 0,
               })
             }
-            className="h-8 text-sm"
+            className="h-10 text-base min-w-0"
           />
         </div>
-        <div className="col-span-1.5 space-y-1">
-          <Label className="text-xs">TVA</Label>
+        <div className="col-span-1.5 space-y-1.5">
+          <Label className="text-sm">TVA</Label>
           <Tooltip>
             <TooltipTrigger asChild>
               <Select
@@ -148,7 +148,7 @@ export function LignePrestation({ ligne, dragHandleProps }: Props) {
                   updateLigne(ligne.id, { tauxTVA: Number(v) as TauxTVA })
                 }
               >
-                <SelectTrigger className="h-8 text-sm">
+                <SelectTrigger className="h-10 text-base min-w-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -167,37 +167,37 @@ export function LignePrestation({ ligne, dragHandleProps }: Props) {
             </TooltipContent>
           </Tooltip>
         </div>
-        <div className="col-span-1 flex items-end h-8 font-medium text-sm">
+        <div className="col-span-1 flex items-end h-10 font-medium text-base">
           {formatEuros(totalHT)}
         </div>
-        <div className="col-span-1 flex gap-1 items-end h-8">
+        <div className="col-span-1 flex gap-1 items-end h-10">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9"
             onClick={() => {
               setFavLabel(ligne.designation || '');
               setFavDialogOpen(true);
             }}
             title="Ajouter aux favoris"
           >
-            <Star className="h-3.5 w-3.5" />
+            <Star className="h-4 w-4" />
           </Button>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9"
             onClick={() => duplicateLigne(ligne.id)}
           >
-            <Copy className="h-3.5 w-3.5" />
+            <Copy className="h-4 w-4" />
           </Button>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-destructive"
+            className="h-9 w-9 text-destructive"
             onClick={() => removeLigne(ligne.id)}
           >
             <Trash2 className="h-3.5 w-3.5" />

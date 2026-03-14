@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#1d4ed8',
     padding: '5 4',
-    borderRadius: '2 2 0 0',
+    borderRadius: 2,
   },
   tableHeaderText: {
     color: '#ffffff',
@@ -137,6 +137,11 @@ interface Props {
   state: DevisState;
 }
 
+function safeFormatEuros(val: number | undefined | null): string {
+  const n = Number(val);
+  return formatEuros(Number.isFinite(n) ? n : 0);
+}
+
 export const DevisDocument = React.memo(function DevisDocument({ state }: Props) {
   const {
     emetteur,
@@ -148,6 +153,7 @@ export const DevisDocument = React.memo(function DevisDocument({ state }: Props)
     mentions,
   } = state;
   const lignes = getLignes(items);
+  const detailTVA = recap?.detailTVA ?? [];
 
   return (
     <Document>
@@ -239,13 +245,13 @@ export const DevisDocument = React.memo(function DevisDocument({ state }: Props)
                 <Text style={styles.colDesignation}>
                   {item.designation || '—'}
                 </Text>
-                <Text style={styles.colUnite}>{UNITE_LABELS[item.unite]}</Text>
+                <Text style={styles.colUnite}>{UNITE_LABELS[item.unite] ?? '—'}</Text>
                 <Text style={styles.colQte}>{item.quantite}</Text>
                 <Text style={styles.colPU}>
-                  {formatEuros(item.prixUnitaireHT)}
+                  {safeFormatEuros(item.prixUnitaireHT)}
                 </Text>
                 <Text style={styles.colTVA}>{item.tauxTVA} %</Text>
-                <Text style={styles.colTotal}>{formatEuros(ht)}</Text>
+                <Text style={styles.colTotal}>{safeFormatEuros(ht)}</Text>
               </View>
             );
           })}
@@ -255,7 +261,7 @@ export const DevisDocument = React.memo(function DevisDocument({ state }: Props)
           <View style={styles.recapBox}>
             <View style={styles.recapRow}>
               <Text>Total HT</Text>
-              <Text>{formatEuros(recap.totalHT)}</Text>
+              <Text>{safeFormatEuros(recap?.totalHT)}</Text>
             </View>
             {recap.remiseType && recap.remiseValeur > 0 && (
               <View style={styles.recapRow}>
@@ -263,26 +269,26 @@ export const DevisDocument = React.memo(function DevisDocument({ state }: Props)
                 <Text>
                   {recap.remiseType === 'pourcentage'
                     ? `- ${recap.remiseValeur} %`
-                    : `- ${formatEuros(recap.remiseValeur)}`}
+                    : `- ${safeFormatEuros(recap.remiseValeur)}`}
                 </Text>
               </View>
             )}
-            {recap.detailTVA.map((t) => (
+            {detailTVA.map((t) => (
               <View key={t.taux} style={styles.recapRow}>
                 <Text>TVA {t.taux} %</Text>
-                <Text>{formatEuros(t.montantTVA)}</Text>
+                <Text>{safeFormatEuros(t.montantTVA)}</Text>
               </View>
             ))}
             <View style={styles.recapTTCRow}>
               <Text style={styles.recapTTCText}>TOTAL TTC</Text>
               <Text style={styles.recapTTCText}>
-                {formatEuros(recap.totalTTC)}
+                {safeFormatEuros(recap?.totalTTC)}
               </Text>
             </View>
-            {recap.acompteType && recap.acompteMontant > 0 && (
+            {recap?.acompteType && (recap?.acompteMontant ?? 0) > 0 && (
               <View style={{ ...styles.recapRow, marginTop: 6 }}>
                 <Text>Acompte à la commande</Text>
-                <Text>{formatEuros(recap.acompteMontant)}</Text>
+                <Text>{safeFormatEuros(recap.acompteMontant)}</Text>
               </View>
             )}
           </View>
@@ -312,32 +318,32 @@ export const DevisDocument = React.memo(function DevisDocument({ state }: Props)
         </View>
 
         <View style={styles.mentionsText}>
-          {mentions.assuranceDecennaleActive &&
+          {mentions?.assuranceDecennaleActive &&
             emetteur.assuranceDecennale && (
               <Text>
                 Assurance décennale n° {emetteur.assuranceDecennale} — conforme
                 aux articles L.241-1 et suivants du Code des assurances.
               </Text>
             )}
-          {mentions.rgeActive && (
+          {mentions?.rgeActive && (
             <Text>
               Entreprise reconnue Garant de l'Environnement (RGE).
             </Text>
           )}
-          {mentions.tva293BActive && (
+          {mentions?.tva293BActive && (
             <Text>TVA non applicable, article 293 B du CGI.</Text>
           )}
-          {mentions.garantieParfaitAchevement && (
+          {mentions?.garantieParfaitAchevement && (
             <Text>
               Garantie de parfait achèvement : 1 an à compter de la réception.
             </Text>
           )}
-          {mentions.garantieBiennale && (
+          {mentions?.garantieBiennale && (
             <Text>
               Garantie biennale : 2 ans sur les éléments d'équipement.
             </Text>
           )}
-          {mentions.garantieDecennale && (
+          {mentions?.garantieDecennale && (
             <Text>
               Garantie décennale : 10 ans sur les éléments structurels.
             </Text>

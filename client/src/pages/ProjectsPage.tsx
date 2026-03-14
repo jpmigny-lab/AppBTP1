@@ -118,7 +118,11 @@ export default function ProjectsPage() {
                   Ajouter un Chantier
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-black/20 backdrop-blur-xl border border-white/10 text-white max-w-2xl">
+              <DialogContent
+                overlayClassName="!bg-black/40"
+                className="!bg-transparent border-0 shadow-none max-w-2xl p-0 gap-0 [&>button]:!text-white [&>button]:hover:!bg-white/20 [&>button]:rounded-lg [&>button]:right-4 [&>button]:top-4"
+              >
+                <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl p-6 pt-12 text-white">
                 <DialogHeader>
                   <DialogTitle className="text-white">Nouveau Chantier</DialogTitle>
                 </DialogHeader>
@@ -129,7 +133,7 @@ export default function ProjectsPage() {
                       value={newChantier.nom}
                       onChange={(e) => setNewChantier({ ...newChantier, nom: e.target.value })}
                       placeholder="Ex: Rénovation salle de bain"
-                      className="bg-black/20 backdrop-blur-md border-white/10 text-white placeholder:text-white/50"
+                      className="bg-white/25 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/40"
                     />
                   </div>
 
@@ -140,10 +144,10 @@ export default function ProjectsPage() {
                         value={newChantier.clientId}
                         onValueChange={(value) => setNewChantier({ ...newChantier, clientId: value })}
                       >
-                        <SelectTrigger className="bg-black/20 backdrop-blur-md border-white/10 text-white">
+                        <SelectTrigger className="bg-white/25 border-white/30 text-white placeholder:text-white/70 [&>span]:text-white">
                           <SelectValue placeholder="Sélectionner un client" />
                         </SelectTrigger>
-                        <SelectContent className="bg-black/20 backdrop-blur-xl border-white/10">
+                        <SelectContent className="bg-white/20 backdrop-blur-xl border border-white/25 text-white">
                           {clients.map((client) => (
                             <SelectItem key={client.id} value={client.id} className="text-white">
                               {client.name}
@@ -169,7 +173,7 @@ export default function ProjectsPage() {
                         type="date"
                         value={newChantier.dateDebut}
                         onChange={(e) => setNewChantier({ ...newChantier, dateDebut: e.target.value })}
-                        className="bg-black/20 backdrop-blur-md border-white/10 text-white"
+                        className="bg-white/25 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/40"
                       />
                     </div>
                     <div>
@@ -178,7 +182,7 @@ export default function ProjectsPage() {
                         value={newChantier.duree}
                         onChange={(e) => setNewChantier({ ...newChantier, duree: e.target.value })}
                         placeholder="Ex: 2 semaines"
-                        className="bg-black/20 backdrop-blur-md border-white/10 text-white placeholder:text-white/50"
+                        className="bg-white/25 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/40"
                       />
                     </div>
                   </div>
@@ -197,7 +201,7 @@ export default function ProjectsPage() {
                       type="button"
                       variant="outline"
                       onClick={() => document.getElementById('chantier-images')?.click()}
-                      className="w-full text-white border-white/20 hover:bg-white/10"
+                      className="w-full text-white bg-white/20 border-white/30 hover:bg-white/30"
                     >
                       <ImageIcon className="h-4 w-4 mr-2" />
                       Ajouter des images
@@ -227,18 +231,19 @@ export default function ProjectsPage() {
                     <Button
                       variant="outline"
                       onClick={() => setIsDialogOpen(false)}
-                      className="text-white border-white/20 hover:bg-white/10"
+                      className="text-white border-white/30 bg-white/10 hover:bg-white/20"
                     >
                       Annuler
                     </Button>
                     <Button
                       onClick={handleAddChantier}
                       disabled={!newChantier.nom || !newChantier.clientId || !newChantier.dateDebut || !newChantier.duree}
-                      className="bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30 disabled:opacity-50"
+                      className="bg-blue-500 hover:bg-blue-600 text-white border-0 disabled:opacity-50"
                     >
                       Ajouter
                     </Button>
                   </div>
+                </div>
                 </div>
               </DialogContent>
             </Dialog>

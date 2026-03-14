@@ -77,6 +77,7 @@ function Router() {
       case "/dashboard/estimation":
         return <ProtectedRoute><EstimationPage /></ProtectedRoute>;
       case "/dashboard/quotes":
+      case "/dashboard/quotes/nouveau":
         return <ProtectedRoute><QuotesPage /></ProtectedRoute>;
       case "/dashboard/ai-visualization":
         return <ProtectedRoute><AIVisualizationPage /></ProtectedRoute>;
@@ -102,23 +103,29 @@ function Router() {
 
   if (isFullPage) {
     return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          variants={pageVariants}
-          className="w-full h-full"
-        >
-          {getComponent()}
-        </motion.div>
-      </AnimatePresence>
+      <div className="relative z-10 min-h-screen w-full">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={pageVariants}
+            className="w-full min-h-screen"
+          >
+            {getComponent()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     );
   }
 
-  // Pages with sidebar - animation handled in PageWrapper or Dashboard
-  return <>{getComponent()}</>;
+  // Pages with sidebar - conteneur explicite au-dessus du fond (z-0)
+  return (
+    <div className="relative z-10 min-h-screen w-full">
+      {getComponent()}
+    </div>
+  );
 }
 
 function App() {

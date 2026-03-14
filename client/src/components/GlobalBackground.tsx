@@ -30,7 +30,7 @@ export function GlobalBackground() {
           swirl={0.1}
           grainMixer={0}
           grainOverlay={0}
-          speed={1}
+          speed={0.10}
           offsetX={0}
           offsetY={0}
           scale={1}

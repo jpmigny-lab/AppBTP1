@@ -43,7 +43,7 @@ export default function Dashboard() {
   }, [setLocation])
   
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden z-10">
       <div className="relative z-10">
         <Sidebar />
         

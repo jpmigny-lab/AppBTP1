@@ -28,10 +28,16 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Building2, User, FileText, ListOrdered, Euro, FileCheck } from 'lucide-react';
-import { useRef } from 'react';
+import { Building2, User, FileText, ListOrdered, Euro, FileCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { useRef, useState } from 'react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { SortableLigneRow } from './SortableLigneRow';
 import { SortableSectionRow } from './SortableSectionRow';
+import { useChantiers, type Client as AppClient } from '@/context/ChantiersContext';
 import type { DevisItem } from '@/types/devis';
 
 const MAX_LOGO_BYTES = 200 * 1024;
@@ -83,6 +89,7 @@ function compressLogo(file: File): Promise<string | null> {
 }
 
 export function DevisForm() {
+  const { clients } = useChantiers();
   const state = useDevisStore((s) => s.state);
   const setEmetteur = useDevisStore((s) => s.setEmetteur);
   const setClient = useDevisStore((s) => s.setClient);
@@ -119,16 +126,50 @@ export function DevisForm() {
     setEmetteur({ logoBase64: dataUrl });
   };
 
+  const [emetteurOpen, setEmetteurOpen] = useState(false);
+  const [clientOpen, setClientOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [lignesOpen, setLignesOpen] = useState(false);
+  const [recapOpen, setRecapOpen] = useState(false);
+  const [conditionsOpen, setConditionsOpen] = useState(false);
+  const [mentionsOpen, setMentionsOpen] = useState(false);
+  const [selectedAppClientId, setSelectedAppClientId] = useState<string | null>(null);
+
+  const handleSelectAppClient = (clientId: string) => {
+    if (!clientId) {
+      setSelectedAppClientId(null);
+      return;
+    }
+    const appClient = clients.find((c: AppClient) => c.id === clientId);
+    if (appClient) {
+      setSelectedAppClientId(appClient.id);
+      setClient({
+        nom: appClient.name,
+        email: appClient.email,
+        telephone: appClient.phone,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 pb-24">
-      {/* Bloc 1 — Émetteur */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Building2 className="h-5 w-5" />
-            Informations émetteur
-          </CardTitle>
-        </CardHeader>
+      {/* Bloc 1 — Émetteur (dépliable) */}
+      <Collapsible open={emetteurOpen} onOpenChange={setEmetteurOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer flex flex-row items-center gap-2 hover:opacity-90 transition-opacity">
+              <Building2 className="h-5 w-5 shrink-0" />
+              <CardTitle className="flex items-center gap-2 text-lg flex-1 text-left !mb-0">
+                Informations émetteur
+              </CardTitle>
+              {emetteurOpen ? (
+                <ChevronUp className="h-5 w-5 shrink-0" />
+              ) : (
+                <ChevronDown className="h-5 w-5 shrink-0" />
+              )}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
         <CardContent className="space-y-4">
           <div className="flex gap-4 items-start">
             {state.emetteur.logoBase64 && (
@@ -243,17 +284,50 @@ export function DevisForm() {
             </div>
           </div>
         </CardContent>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* Bloc 2 — Client */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5" />
-            Client
-          </CardTitle>
-        </CardHeader>
+      {/* Bloc 2 — Client (dépliable) */}
+      <Collapsible open={clientOpen} onOpenChange={setClientOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer flex flex-row items-center gap-2 hover:opacity-90 transition-opacity">
+              <User className="h-5 w-5 shrink-0" />
+              <CardTitle className="flex items-center gap-2 text-lg flex-1 text-left !mb-0">
+                Client
+              </CardTitle>
+              {clientOpen ? <ChevronUp className="h-5 w-5 shrink-0" /> : <ChevronDown className="h-5 w-5 shrink-0" />}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Sélectionner un client existant</Label>
+            <Select
+              value={selectedAppClientId ?? 'none'}
+              onValueChange={(value) => {
+                if (value === 'none') {
+                  setSelectedAppClientId(null);
+                } else {
+                  handleSelectAppClient(value);
+                }
+              }}
+            >
+              <SelectTrigger className="bg-white/10 border-white/20 text-white placeholder:text-white/60 [&>span]:text-white">
+                <SelectValue placeholder="Saisie manuelle" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Saisie manuelle</SelectItem>
+                {clients.map((c: AppClient) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                    {c.email ? ` — ${c.email}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center gap-4">
             <Label>Type</Label>
             <div className="flex items-center gap-2">
@@ -316,16 +390,23 @@ export function DevisForm() {
             </div>
           </div>
         </CardContent>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* Bloc 3 — Détails du devis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-5 w-5" />
-            Détails du devis
-          </CardTitle>
-        </CardHeader>
+      {/* Bloc 3 — Détails du devis (dépliable) */}
+      <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer flex flex-row items-center gap-2 hover:opacity-90 transition-opacity">
+              <FileText className="h-5 w-5 shrink-0" />
+              <CardTitle className="flex items-center gap-2 text-lg flex-1 text-left !mb-0">
+                Détails du devis
+              </CardTitle>
+              {detailsOpen ? <ChevronUp className="h-5 w-5 shrink-0" /> : <ChevronDown className="h-5 w-5 shrink-0" />}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -379,29 +460,38 @@ export function DevisForm() {
             </div>
           </div>
         </CardContent>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* Bloc 4 — Lignes */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <ListOrdered className="h-5 w-5" />
-            Lignes de prestation
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => addSection()}
-            >
-              + Section
-            </Button>
-            <Button type="button" size="sm" onClick={() => addLigne()}>
-              + Ligne
-            </Button>
-          </div>
-        </CardHeader>
+      {/* Bloc 4 — Lignes (dépliable) */}
+      <Collapsible open={lignesOpen} onOpenChange={setLignesOpen}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CollapsibleTrigger asChild>
+              <div className="cursor-pointer flex flex-row items-center gap-2 hover:opacity-90 transition-opacity flex-1 min-w-0">
+                <ListOrdered className="h-5 w-5 shrink-0" />
+                <CardTitle className="flex items-center gap-2 text-lg flex-1 text-left !mb-0">
+                  Lignes de prestation
+                </CardTitle>
+                {lignesOpen ? <ChevronUp className="h-5 w-5 shrink-0" /> : <ChevronDown className="h-5 w-5 shrink-0" />}
+              </div>
+            </CollapsibleTrigger>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection()}
+              >
+                + Section
+              </Button>
+              <Button type="button" size="sm" onClick={() => addLigne()}>
+                + Ligne
+              </Button>
+            </div>
+          </CardHeader>
+          <CollapsibleContent>
         <CardContent className="space-y-3">
           <DndContext
             sensors={sensors}
@@ -428,16 +518,23 @@ export function DevisForm() {
             </SortableContext>
           </DndContext>
         </CardContent>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* Bloc 5 — Récap */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Euro className="h-5 w-5" />
-            Récapitulatif financier
-          </CardTitle>
-        </CardHeader>
+      {/* Bloc 5 — Récap (dépliable) */}
+      <Collapsible open={recapOpen} onOpenChange={setRecapOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer flex flex-row items-center gap-2 hover:opacity-90 transition-opacity">
+              <Euro className="h-5 w-5 shrink-0" />
+              <CardTitle className="flex items-center gap-2 text-lg flex-1 text-left !mb-0">
+                Récapitulatif financier
+              </CardTitle>
+              {recapOpen ? <ChevronUp className="h-5 w-5 shrink-0" /> : <ChevronDown className="h-5 w-5 shrink-0" />}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
         <CardContent className="space-y-4">
           <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
             <div className="flex justify-between text-sm">
@@ -557,16 +654,23 @@ export function DevisForm() {
             )}
           </div>
         </CardContent>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* Bloc 6 — Conditions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileCheck className="h-5 w-5" />
-            Conditions
-          </CardTitle>
-        </CardHeader>
+      {/* Bloc 6 — Conditions (dépliable) */}
+      <Collapsible open={conditionsOpen} onOpenChange={setConditionsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer flex flex-row items-center gap-2 hover:opacity-90 transition-opacity">
+              <FileCheck className="h-5 w-5 shrink-0" />
+              <CardTitle className="flex items-center gap-2 text-lg flex-1 text-left !mb-0">
+                Conditions
+              </CardTitle>
+              {conditionsOpen ? <ChevronUp className="h-5 w-5 shrink-0" /> : <ChevronDown className="h-5 w-5 shrink-0" />}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -637,13 +741,22 @@ export function DevisForm() {
             />
           </div>
         </CardContent>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* Bloc 7 — Mentions légales */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Mentions légales</CardTitle>
-        </CardHeader>
+      {/* Bloc 7 — Mentions légales (dépliable) */}
+      <Collapsible open={mentionsOpen} onOpenChange={setMentionsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer flex flex-row items-center gap-2 hover:opacity-90 transition-opacity">
+              <CardTitle className="flex items-center gap-2 text-lg flex-1 text-left !mb-0">
+                Mentions légales
+              </CardTitle>
+              {mentionsOpen ? <ChevronUp className="h-5 w-5 shrink-0" /> : <ChevronDown className="h-5 w-5 shrink-0" />}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="font-normal">
@@ -704,7 +817,9 @@ export function DevisForm() {
             />
           </div>
         </CardContent>
-      </Card>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 }
