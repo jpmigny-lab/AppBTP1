@@ -35,26 +35,26 @@ export function PageWrapper({ children }: PageWrapperProps) {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      <div className="relative z-10">
-        {/* Sidebar - animated menu */}
+      <div className="relative z-10 flex min-h-screen w-full">
+        {/* Sidebar - fixe, toujours visible */}
         <Sidebar />
 
-        {/* User Account Button - fixed top right */}
-        <UserAccountButton />
-
-        {/* Main Content - animated */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={contentVariants}
-            className="p-6 lg:p-8"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        {/* Zone principale : bouton compte + contenu */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <UserAccountButton />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={contentVariants}
+              className="flex-1 p-6 lg:p-8"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   )
