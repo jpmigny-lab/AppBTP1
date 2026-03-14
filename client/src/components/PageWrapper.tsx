@@ -49,7 +49,7 @@ export function PageWrapper({ children }: PageWrapperProps) {
               animate="animate"
               exit="exit"
               variants={contentVariants}
-              className="flex-1 p-6 lg:p-8"
+              className="flex-1 p-4 pt-20 pl-14 md:p-6 md:pt-8 md:pl-0 lg:p-8"
             >
               {children}
             </motion.div>

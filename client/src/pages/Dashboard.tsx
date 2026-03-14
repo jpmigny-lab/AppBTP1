@@ -44,14 +44,10 @@ export default function Dashboard() {
   
   return (
     <div className="min-h-screen relative overflow-hidden z-10">
-      <div className="relative z-10">
+      <div className="relative z-10 flex min-h-screen w-full">
         <Sidebar />
-        
-        {/* User Account Button - fixed top right */}
         <UserAccountButton />
-
-        {/* Main Content */}
-        <main className="ml-0 lg:ml-0 p-6 lg:p-8">
+        <main className="flex-1 min-w-0 p-4 pt-20 pl-14 md:p-6 md:pt-8 md:pl-0 lg:p-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={location}
@@ -62,7 +58,7 @@ export default function Dashboard() {
             className="max-w-7xl mx-auto"
           >
             {/* Header */}
-            <div className="mb-8 ml-20">
+            <div className="mb-8">
               <h1 className="text-4xl font-light tracking-tight text-white mb-2 drop-shadow-lg">
                 Dashboard
               </h1>

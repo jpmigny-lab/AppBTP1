@@ -19,7 +19,7 @@ export function UserAccountButton() {
   const userName = isGuest ? 'Invité (démo)' : (user?.user_metadata?.full_name || userEmail.split('@')[0]);
 
   return (
-    <div className="fixed top-6 right-6 z-50">
+    <div className="fixed top-4 right-4 md:top-6 md:right-6 z-50">
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}

@@ -88,14 +88,14 @@ export default function QuotesPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden z-10">
+    <div className="min-h-screen relative overflow-hidden z-10 flex w-full">
       <Sidebar />
       <UserAccountButton />
 
       {isListView ? (
         /* Vue liste des devis — même fond que le reste du dashboard */
-        <div className="min-h-screen overflow-y-auto">
-          <div className="p-6 max-w-3xl mx-auto">
+        <div className="flex-1 min-w-0 min-h-screen overflow-y-auto pt-20 pl-14 md:pt-6 md:pl-0">
+          <div className="p-4 md:p-6 max-w-3xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-2xl font-light tracking-tight text-white drop-shadow-lg">
@@ -188,9 +188,9 @@ export default function QuotesPage() {
           </div>
         </div>
       ) : (
-        <>
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 pt-20 pl-14 md:pt-0 md:pl-0">
           {/* Barre d'actions en haut — style glass */}
-          <div className="flex items-center justify-center gap-3 py-3 px-4 bg-black/20 backdrop-blur-xl border-b border-white/10 shadow-lg flex-wrap">
+          <div className="flex items-center justify-center gap-3 py-3 px-4 bg-black/20 backdrop-blur-xl border-b border-white/10 shadow-lg flex-wrap shrink-0">
             <Button
               type="button"
               variant="outline"
@@ -231,11 +231,11 @@ export default function QuotesPage() {
             </Button>
           </div>
 
-          <div className="flex ml-0 lg:ml-0 flex-1 min-h-0">
+          <div className="flex flex-col lg:flex-row flex-1 min-h-0">
             {/* Colonne gauche 55% — Formulaire (plus large pour remplir les champs) */}
-            <div className="w-full lg:w-[55%] min-h-screen overflow-y-auto border-r border-white/10 bg-transparent">
+            <div className="w-full lg:w-[55%] min-h-0 overflow-y-auto border-r-0 lg:border-r border-white/10 bg-transparent">
               <div
-                className="p-6 max-w-4xl [&_.shadcn-card]:bg-black/20 [&_.shadcn-card]:backdrop-blur-xl [&_.shadcn-card]:border-white/10 [&_.shadcn-card]:text-white [&_.text-muted-foreground]:text-white/80 [&_label]:text-white/90 [&_input]:bg-white/10 [&_input]:border-white/20 [&_input]:text-white [&_input::placeholder]:text-white/50 [&_textarea]:bg-white/10 [&_textarea]:border-white/20 [&_textarea]:text-white [&_.rounded-lg]:bg-black/20 [&_.rounded-lg]:border-white/10 [&_.text-green-600]:text-green-300 [&_.text-amber-600]:text-amber-300"
+                className="p-4 md:p-6 max-w-4xl [&_.shadcn-card]:bg-black/20 [&_.shadcn-card]:backdrop-blur-xl [&_.shadcn-card]:border-white/10 [&_.shadcn-card]:text-white [&_.text-muted-foreground]:text-white/80 [&_label]:text-white/90 [&_input]:bg-white/10 [&_input]:border-white/20 [&_input]:text-white [&_input::placeholder]:text-white/50 [&_textarea]:bg-white/10 [&_textarea]:border-white/20 [&_textarea]:text-white [&_.rounded-lg]:bg-black/20 [&_.rounded-lg]:border-white/10 [&_.text-green-600]:text-green-300 [&_.text-amber-600]:text-amber-300"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <h1 className="text-2xl font-light tracking-tight text-white drop-shadow-lg mb-1">
@@ -266,7 +266,7 @@ export default function QuotesPage() {
               <DevisPreview />
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Dialog sauvegarde */}
