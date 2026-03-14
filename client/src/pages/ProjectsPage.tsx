@@ -5,15 +5,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building, Plus, Calendar, Clock, User, Image as ImageIcon, X } from 'lucide-react';
+import { Building, Plus, Calendar, Clock, User, Image as ImageIcon, X, Pencil } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useChantiers, Chantier, Client } from '@/context/ChantiersContext';
 
 export default function ProjectsPage() {
-  const { chantiers, clients, addChantier, addClient } = useChantiers();
+  const { chantiers, clients, addChantier, addClient, updateChantier } = useChantiers();
   const [location] = useLocation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingChantier, setEditingChantier] = useState<Chantier | null>(null);
   const [newChantier, setNewChantier] = useState({
     nom: '',
     clientId: '',
@@ -50,27 +51,57 @@ export default function ProjectsPage() {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleAddChantier = () => {
+  const openEditDialog = (chantier: Chantier) => {
+    setEditingChantier(chantier);
+    setNewChantier({
+      nom: chantier.nom,
+      clientId: chantier.clientId,
+      dateDebut: chantier.dateDebut,
+      duree: chantier.duree,
+      images: [...chantier.images]
+    });
+    setUploadedImages([]);
+    setIsDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingChantier(null);
+    setNewChantier({ nom: '', clientId: '', dateDebut: '', duree: '', images: [] });
+    setUploadedImages([]);
+  };
+
+  const handleSaveChantier = () => {
     if (!newChantier.nom || !newChantier.clientId || !newChantier.dateDebut || !newChantier.duree) {
       return;
     }
 
     const client = clients.find(c => c.id === newChantier.clientId);
-    const chantier: Chantier = {
-      id: Date.now().toString(),
-      nom: newChantier.nom,
-      clientId: newChantier.clientId,
-      clientName: client?.name || 'Client inconnu',
-      dateDebut: newChantier.dateDebut,
-      duree: newChantier.duree,
-      images: newChantier.images,
-      statut: 'planifié'
-    };
+    const clientName = client?.name || 'Client inconnu';
 
-    addChantier(chantier);
-    setNewChantier({ nom: '', clientId: '', dateDebut: '', duree: '', images: [] });
-    setUploadedImages([]);
-    setIsDialogOpen(false);
+    if (editingChantier) {
+      updateChantier(editingChantier.id, {
+        nom: newChantier.nom,
+        clientId: newChantier.clientId,
+        clientName,
+        dateDebut: newChantier.dateDebut,
+        duree: newChantier.duree,
+        images: newChantier.images
+      });
+    } else {
+      const chantier: Chantier = {
+        id: Date.now().toString(),
+        nom: newChantier.nom,
+        clientId: newChantier.clientId,
+        clientName,
+        dateDebut: newChantier.dateDebut,
+        duree: newChantier.duree,
+        images: newChantier.images,
+        statut: 'planifié'
+      };
+      addChantier(chantier);
+    }
+    closeDialog();
   };
 
   const handleAddClient = () => {
@@ -111,7 +142,14 @@ export default function ProjectsPage() {
                 Clients
               </Button>
             </Link>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) closeDialog();
+                else if (!editingChantier) {
+                  setNewChantier({ nom: '', clientId: '', dateDebut: '', duree: '', images: [] });
+                  setUploadedImages([]);
+                }
+              }}>
               <DialogTrigger asChild>
                 <Button className="bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30">
                   <Plus className="h-4 w-4 mr-2" />
@@ -124,7 +162,7 @@ export default function ProjectsPage() {
               >
                 <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl p-6 pt-12 text-white">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Nouveau Chantier</DialogTitle>
+                  <DialogTitle className="text-white">{editingChantier ? 'Modifier le chantier' : 'Nouveau Chantier'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -230,17 +268,17 @@ export default function ProjectsPage() {
                   <div className="flex justify-end gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
+                      onClick={closeDialog}
                       className="text-white border-white/30 bg-white/10 hover:bg-white/20"
                     >
                       Annuler
                     </Button>
                     <Button
-                      onClick={handleAddChantier}
+                      onClick={handleSaveChantier}
                       disabled={!newChantier.nom || !newChantier.clientId || !newChantier.dateDebut || !newChantier.duree}
                       className="bg-blue-500 hover:bg-blue-600 text-white border-0 disabled:opacity-50"
                     >
-                      Ajouter
+                      {editingChantier ? 'Enregistrer' : 'Ajouter'}
                     </Button>
                   </div>
                 </div>
@@ -313,7 +351,7 @@ export default function ProjectsPage() {
                     <Clock className="h-4 w-4" />
                     {chantier.duree}
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-4 flex items-center justify-between gap-2">
                     <span className={`px-2 py-1 rounded text-xs ${
                       chantier.statut === 'planifié' ? 'bg-blue-500/20 text-blue-300' :
                       chantier.statut === 'en cours' ? 'bg-green-500/20 text-green-300' :
@@ -321,6 +359,15 @@ export default function ProjectsPage() {
                     }`}>
                       {chantier.statut}
                     </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); openEditDialog(chantier); }}
+                      className="text-white border-white/20 hover:bg-white/10 shrink-0"
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

@@ -23,6 +23,7 @@ interface ChantiersContextType {
   chantiers: Chantier[];
   addClient: (client: Client) => void;
   addChantier: (chantier: Chantier) => void;
+  updateClient: (id: string, updates: Partial<Client>) => void;
   updateChantier: (id: string, updates: Partial<Chantier>) => void;
 }
 
@@ -39,6 +40,13 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
     setClients(prev => [...prev, client]);
   };
 
+  const updateClient = (id: string, updates: Partial<Client>) => {
+    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    if (updates.name !== undefined) {
+      setChantiers(prev => prev.map(ch => ch.clientId === id ? { ...ch, clientName: updates.name! } : ch));
+    }
+  };
+
   const addChantier = (chantier: Chantier) => {
     setChantiers(prev => [...prev, chantier]);
   };
@@ -48,7 +56,7 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ChantiersContext.Provider value={{ clients, chantiers, addClient, addChantier, updateChantier }}>
+    <ChantiersContext.Provider value={{ clients, chantiers, addClient, addChantier, updateClient, updateChantier }}>
       {children}
     </ChantiersContext.Provider>
   );

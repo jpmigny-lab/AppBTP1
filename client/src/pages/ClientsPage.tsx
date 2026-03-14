@@ -1,17 +1,18 @@
 import { PageWrapper } from '@/components/PageWrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Plus, Building, Mail, Phone, Image as ImageIcon } from 'lucide-react';
+import { User, Plus, Building, Mail, Phone, Image as ImageIcon, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { useChantiers, Client } from '@/context/ChantiersContext';
 
 export default function ClientsPage() {
-  const { clients, chantiers, addClient } = useChantiers();
+  const { clients, chantiers, addClient, updateClient } = useChantiers();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '' });
 
   // Filtrer les chantiers du client sélectionné
@@ -19,17 +20,34 @@ export default function ClientsPage() {
     ? chantiers.filter(c => c.clientId === selectedClient.id)
     : [];
 
-  const handleAddClient = () => {
+  const openEditDialog = (client: Client) => {
+    setEditingClient(client);
+    setNewClient({ name: client.name, email: client.email, phone: client.phone });
+    setIsDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingClient(null);
+    setNewClient({ name: '', email: '', phone: '' });
+  };
+
+  const handleSaveClient = () => {
     if (!newClient.name || !newClient.email || !newClient.phone) return;
 
-    const client: Client = {
-      id: Date.now().toString(),
-      ...newClient
-    };
-
-    addClient(client);
-    setNewClient({ name: '', email: '', phone: '' });
-    setIsDialogOpen(false);
+    if (editingClient) {
+      updateClient(editingClient.id, newClient);
+      if (selectedClient?.id === editingClient.id) {
+        setSelectedClient({ ...selectedClient, ...newClient });
+      }
+    } else {
+      const client: Client = {
+        id: Date.now().toString(),
+        ...newClient
+      };
+      addClient(client);
+    }
+    closeDialog();
   };
 
   return (
@@ -44,17 +62,27 @@ export default function ClientsPage() {
               {selectedClient ? `Chantiers de ${selectedClient.name}` : 'Gérez vos clients et leurs chantiers'}
             </p>
           </div>
-          {!selectedClient && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter un Client
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-black/20 backdrop-blur-xl border border-white/10 text-white">
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) closeDialog();
+            else if (!editingClient) setNewClient({ name: '', email: '', phone: '' });
+          }}>
+            {!selectedClient && (
+              <Button
+                onClick={() => { setEditingClient(null); setNewClient({ name: '', email: '', phone: '' }); setIsDialogOpen(true); }}
+                className="bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter un Client
+              </Button>
+            )}
+            <DialogContent
+              overlayClassName="!bg-black/40"
+              className="!bg-transparent border-0 shadow-none max-w-md p-0 gap-0 [&>button]:!text-white [&>button]:hover:!bg-white/20 [&>button]:rounded-lg [&>button]:right-4 [&>button]:top-4"
+            >
+              <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl p-6 pt-12 text-white">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Nouveau Client</DialogTitle>
+                  <DialogTitle className="text-white">{editingClient ? 'Modifier le client' : 'Nouveau Client'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -63,7 +91,7 @@ export default function ClientsPage() {
                       value={newClient.name}
                       onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
                       placeholder="Nom du client"
-                      className="bg-black/20 backdrop-blur-md border-white/10 text-white placeholder:text-white/50"
+                      className="bg-white/25 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/40"
                     />
                   </div>
                   <div>
@@ -73,7 +101,7 @@ export default function ClientsPage() {
                       value={newClient.email}
                       onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
                       placeholder="email@example.com"
-                      className="bg-black/20 backdrop-blur-md border-white/10 text-white placeholder:text-white/50"
+                      className="bg-white/25 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/40"
                     />
                   </div>
                   <div>
@@ -83,36 +111,46 @@ export default function ClientsPage() {
                       value={newClient.phone}
                       onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
                       placeholder="06 12 34 56 78"
-                      className="bg-black/20 backdrop-blur-md border-white/10 text-white placeholder:text-white/50"
+                      className="bg-white/25 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/40"
                     />
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
-                      className="text-white border-white/20 hover:bg-white/10"
+                      onClick={closeDialog}
+                      className="text-white border-white/30 bg-white/10 hover:bg-white/20"
                     >
                       Annuler
                     </Button>
                     <Button
-                      onClick={handleAddClient}
-                      className="bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30"
+                      onClick={handleSaveClient}
+                      className="bg-blue-500 hover:bg-blue-600 text-white border-0"
                     >
-                      Ajouter
+                      {editingClient ? 'Enregistrer' : 'Ajouter'}
                     </Button>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          )}
+              </div>
+            </DialogContent>
+          </Dialog>
           {selectedClient && (
-            <Button
-              variant="outline"
-              onClick={() => setSelectedClient(null)}
-              className="text-white border-white/20 hover:bg-white/10"
-            >
-              Retour à la liste
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedClient(null)}
+                className="text-white border-white/20 hover:bg-white/10"
+              >
+                Retour à la liste
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => openEditDialog(selectedClient)}
+                className="text-white border-white/20 hover:bg-white/10"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Modifier
+              </Button>
+            </div>
           )}
         </div>
       </header>
@@ -127,13 +165,21 @@ export default function ClientsPage() {
                 onClick={() => setSelectedClient(client)}
               >
                 <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
-                      <User className="h-6 w-6 text-white/70" />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center shrink-0">
+                        <User className="h-6 w-6 text-white/70" />
+                      </div>
+                      <CardTitle className="text-lg truncate">{client.name}</CardTitle>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{client.name}</CardTitle>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); openEditDialog(client); }}
+                      className="text-white border-white/20 hover:bg-white/10 shrink-0"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
