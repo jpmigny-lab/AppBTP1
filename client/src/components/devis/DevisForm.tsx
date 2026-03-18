@@ -554,7 +554,7 @@ export function DevisForm() {
                       })
                     }
                   >
-                    <SelectTrigger className="h-8">
+                    <SelectTrigger className="h-8 bg-white text-gray-900 [&>span]:text-gray-900 placeholder:text-gray-500">
                       <SelectValue placeholder="Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -569,7 +569,7 @@ export function DevisForm() {
                       type="number"
                       min={0}
                       step={0.01}
-                      className="h-8 w-24"
+                      className="h-8 w-24 bg-white text-gray-900 placeholder:text-gray-500"
                       value={
                         state.recap.remiseValeur
                           ? String(state.recap.remiseValeur)
@@ -599,7 +599,7 @@ export function DevisForm() {
                       })
                     }
                   >
-                    <SelectTrigger className="h-8">
+                    <SelectTrigger className="h-8 bg-white text-gray-900 [&>span]:text-gray-900 placeholder:text-gray-500">
                       <SelectValue placeholder="Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -614,7 +614,7 @@ export function DevisForm() {
                       type="number"
                       min={0}
                       step={0.01}
-                      className="h-8 w-24"
+                      className="h-8 w-24 bg-white text-gray-900 placeholder:text-gray-500"
                       value={
                         state.recap.acompteValeur
                           ? String(state.recap.acompteValeur)

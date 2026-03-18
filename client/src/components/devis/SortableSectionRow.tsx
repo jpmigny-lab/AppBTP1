@@ -35,7 +35,7 @@ export function SortableSectionRow({ section }: Props) {
       className="flex items-center gap-2 p-2 rounded-lg bg-muted border"
     >
       <div
-        className="cursor-grab active:cursor-grabbing touch-none p-1"
+        className="cursor-grab active:cursor-grabbing touch-none p-1 shrink-0"
         {...attributes}
         {...listeners}
       >
@@ -45,7 +45,7 @@ export function SortableSectionRow({ section }: Props) {
         value={section.titre}
         onChange={(e) => updateSection(section.id, e.target.value)}
         placeholder="Ex. DÉMOLITION"
-        className="flex-1 font-semibold text-sm h-8 bg-background"
+        className="flex-1 min-w-0 font-semibold text-sm h-8 bg-white text-gray-900 placeholder:text-gray-500"
       />
       <Button
         type="button"
