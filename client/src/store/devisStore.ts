@@ -160,6 +160,7 @@ interface DevisStore {
   saveCurrentDevis: (nom: string, overwriteId?: string) => void;
   loadDevis: (id: string) => void;
   duplicateDevis: (id: string) => void;
+  deleteDevis: (id: string) => void;
 
   addToCatalogue: (prestation: Omit<PrestationFavorite, 'id'>) => void;
   removeFromCatalogue: (id: string) => void;
@@ -400,6 +401,16 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
       const savedList = [...s.savedList, clone];
       localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
       return { savedList };
+    }),
+
+  deleteDevis: (id) =>
+    set((s) => {
+      const savedList = s.savedList.filter((d) => d.id !== id);
+      localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+      return {
+        savedList,
+        ...(s.loadedDevisId === id ? { state: buildInitialState(), loadedDevisId: null } : {}),
+      };
     }),
 
   addToCatalogue: (prestation) =>

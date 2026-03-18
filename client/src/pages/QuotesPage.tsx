@@ -18,7 +18,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Save, FileDown, Copy, Mail, Plus, List, FileText } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Save, FileDown, Copy, Mail, Plus, List, FileText, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function QuotesPage() {
@@ -35,6 +45,8 @@ export default function QuotesPage() {
   const resetDevis = useDevisStore((s) => s.resetDevis);
   const loadDevis = useDevisStore((s) => s.loadDevis);
   const duplicateDevis = useDevisStore((s) => s.duplicateDevis);
+  const deleteDevis = useDevisStore((s) => s.deleteDevis);
+  const [devisToDelete, setDevisToDelete] = useState<string | null>(null);
   const peutGenererPDF = usePDFPeutEtreGenere();
 
   const handleNouveauDevis = () => {
@@ -183,6 +195,17 @@ export default function QuotesPage() {
                             >
                               <Copy className="h-4 w-4" />
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-300/90 hover:bg-red-500/20 hover:text-red-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDevisToDelete(d.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -326,6 +349,35 @@ export default function QuotesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation suppression */}
+      <AlertDialog open={!!devisToDelete} onOpenChange={(open) => !open && setDevisToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce devis ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le devis sera définitivement supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (devisToDelete) {
+                  const wasLoaded = loadedDevisId === devisToDelete;
+                  deleteDevis(devisToDelete);
+                  setDevisToDelete(null);
+                  if (wasLoaded) setLocation('/dashboard/quotes');
+                  toast({ title: 'Devis supprimé', description: 'Le devis a été supprimé de la liste.' });
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
