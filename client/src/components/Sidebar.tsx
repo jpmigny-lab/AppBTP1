@@ -23,7 +23,7 @@ function NavContent({ location, onNavigate }: { location: string; onNavigate?: (
   return (
     <>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-1 text-white">Aos Renov</h2>
+        <h2 className="text-2xl font-bold mb-1 text-white">AXYOS Renov</h2>
         <p className="text-sm text-white/70">Construire pour durer</p>
         <div className="h-1 w-20 rounded bg-violet-500 mt-2" />
       </div>

@@ -126,6 +126,7 @@ function recalcAndPatch(
 
 interface DevisStore {
   state: DevisState;
+  loadedDevisId: string | null;
   catalogue: PrestationFavorite[];
   modeles: ModeleDevis[];
   savedList: DevisSauvegarde[];
@@ -156,7 +157,7 @@ interface DevisStore {
 
   resetDevis: () => void;
   loadFromTemplate: (modele: ModeleDevis) => void;
-  saveCurrentDevis: (nom: string) => void;
+  saveCurrentDevis: (nom: string, overwriteId?: string) => void;
   loadDevis: (id: string) => void;
   duplicateDevis: (id: string) => void;
 
@@ -182,6 +183,7 @@ function safeParse<T>(key: string, fallback: T): T {
 
 export const useDevisStore = create<DevisStore>((set, get) => ({
   state: buildInitialState(),
+  loadedDevisId: null,
   catalogue: safeParse(LS_CATALOGUE, []),
   modeles: safeParse(LS_MODELES, []),
   savedList: safeParse(LS_SAVED, []),
@@ -327,7 +329,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
       state: recalcAndPatch(newItems, s.state),
     })),
 
-  resetDevis: () => set(() => ({ state: buildInitialState() })),
+  resetDevis: () => set(() => ({ state: buildInitialState(), loadedDevisId: null })),
 
   loadFromTemplate: (modele) =>
     set(() => ({
@@ -342,25 +344,39 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
       },
     })),
 
-  saveCurrentDevis: (nom) =>
+  saveCurrentDevis: (nom, overwriteId) =>
     set((s) => {
+      const now = new Date().toISOString();
+      if (overwriteId) {
+        const found = s.savedList.find((d) => d.id === overwriteId);
+        if (!found) return s;
+        const updated: DevisSauvegarde = {
+          ...found,
+          nom,
+          state: s.state,
+          updatedAt: now,
+        };
+        const savedList = s.savedList.map((d) => (d.id === overwriteId ? updated : d));
+        localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+        return { savedList };
+      }
       const devis: DevisSauvegarde = {
         id: uuidv4(),
         nom,
         state: s.state,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
       };
       const savedList = [...s.savedList, devis];
       localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
-      return { savedList };
+      return { savedList, loadedDevisId: devis.id };
     }),
 
   loadDevis: (id) =>
     set((s) => {
       const found = s.savedList.find((d) => d.id === id);
       if (!found) return s;
-      return { state: found.state };
+      return { state: found.state, loadedDevisId: id };
     }),
 
   duplicateDevis: (id) =>

@@ -30,6 +30,7 @@ export default function QuotesPage() {
   const { toast } = useToast();
   const state = useDevisStore((s) => s.state);
   const savedList = useDevisStore((s) => s.savedList);
+  const loadedDevisId = useDevisStore((s) => s.loadedDevisId);
   const saveCurrentDevis = useDevisStore((s) => s.saveCurrentDevis);
   const resetDevis = useDevisStore((s) => s.resetDevis);
   const loadDevis = useDevisStore((s) => s.loadDevis);
@@ -47,12 +48,17 @@ export default function QuotesPage() {
   };
 
 
-  const handleSauvegarder = () => {
+  const handleSauvegarder = (overwriteExisting?: boolean) => {
     const nom = saveName.trim() || `Devis ${state.details.numeroDevis}`;
-    saveCurrentDevis(nom);
+    if (overwriteExisting && loadedDevisId) {
+      saveCurrentDevis(nom, loadedDevisId);
+      toast({ title: 'Devis enregistré', description: `"${nom}" a été mis à jour.` });
+    } else {
+      saveCurrentDevis(nom);
+      toast({ title: 'Devis enregistré', description: `"${nom}" a été sauvegardé.` });
+    }
     setSaveName('');
     setSaveDialogOpen(false);
-    toast({ title: 'Devis enregistré', description: `"${nom}" a été sauvegardé.` });
   };
 
   const handleGenererPDF = async () => {
@@ -270,10 +276,18 @@ export default function QuotesPage() {
       )}
 
       {/* Dialog sauvegarde */}
-      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+      <Dialog open={saveDialogOpen} onOpenChange={(open) => {
+        setSaveDialogOpen(open);
+        if (open && loadedDevisId) {
+          const existing = savedList.find((d) => d.id === loadedDevisId);
+          setSaveName(existing?.nom ?? '');
+        } else if (!open) setSaveName('');
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Sauvegarder le devis</DialogTitle>
+            <DialogTitle>
+              {loadedDevisId ? 'Enregistrer les modifications' : 'Sauvegarder le devis'}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -285,9 +299,30 @@ export default function QuotesPage() {
                 placeholder={`Ex. Dupont - Salle de bain - ${state.details.numeroDevis}`}
               />
             </div>
-            <Button onClick={handleSauvegarder} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-              Enregistrer
-            </Button>
+            {loadedDevisId ? (
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => handleSauvegarder(true)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Enregistrer (écraser l&apos;existant)
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleSauvegarder(false)}
+                  className="w-full"
+                >
+                  Enregistrer sous un autre nom
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => handleSauvegarder(false)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Enregistrer
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

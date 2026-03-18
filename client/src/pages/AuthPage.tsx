@@ -68,8 +68,8 @@ export default function AuthPage() {
           }
           description={
             isSignUp
-              ? "Créez votre compte pour accéder à votre application Aos Renov"
-              : "Connectez-vous à votre compte Aos Renov"
+              ? "Créez votre compte pour accéder à votre application AXYOS Renov"
+              : "Connectez-vous à votre compte AXYOS Renov"
           }
           isSignUp={isSignUp}
           onToggleMode={() => setIsSignUp(!isSignUp)}
