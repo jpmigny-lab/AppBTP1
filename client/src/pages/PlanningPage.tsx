@@ -1,7 +1,8 @@
 import { PageWrapper } from '@/components/PageWrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Building, Clock, User } from 'lucide-react';
-import { useChantiers } from '@/context/ChantiersContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar, Building, Clock, User, Image as ImageIcon } from 'lucide-react';
+import { useChantiers, type Chantier } from '@/context/ChantiersContext';
 import { useState, useMemo } from 'react';
 
 // Fonction pour parser la durée et calculer la date de fin
@@ -79,6 +80,7 @@ function getDaysInMonth(year: number, month: number) {
 export default function PlanningPage() {
   const { chantiers } = useChantiers();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedChantier, setSelectedChantier] = useState<Chantier | null>(null);
   
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -216,14 +218,18 @@ export default function PlanningPage() {
                         return (
                           <div
                             key={chantier.id}
-                            className={`text-xs p-1 rounded truncate ${
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedChantier(chantier)}
+                            onKeyDown={(e) => e.key === 'Enter' && setSelectedChantier(chantier)}
+                            className={`text-xs p-1 rounded truncate cursor-pointer hover:opacity-90 ${
                               chantier.statut === 'planifié'
                                 ? 'bg-blue-500/30 text-blue-200 border border-blue-500/50'
                                 : chantier.statut === 'en cours'
                                 ? 'bg-yellow-500/30 text-yellow-200 border border-yellow-500/50'
                                 : 'bg-green-500/30 text-green-200 border border-green-500/50'
                             }`}
-                            title={`${chantier.nom} - ${chantier.clientName}`}
+                            title={`${chantier.nom} - ${chantier.clientName} (cliquer pour détails)`}
                           >
                             {isStart && '▶ '}
                             {isEnd && '◀ '}
@@ -295,7 +301,11 @@ export default function PlanningPage() {
                     return (
                       <div
                         key={chantier.id}
-                        className="p-3 rounded-lg bg-black/20 border border-white/10"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedChantier(chantier)}
+                        onKeyDown={(e) => e.key === 'Enter' && setSelectedChantier(chantier)}
+                        className="p-3 rounded-lg bg-black/20 border border-white/10 cursor-pointer hover:bg-black/30 transition-colors"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -331,6 +341,62 @@ export default function PlanningPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Popup détail chantier */}
+        <Dialog open={!!selectedChantier} onOpenChange={(open) => !open && setSelectedChantier(null)}>
+          <DialogContent
+            className="!bg-transparent border-0 shadow-none p-0 max-w-md"
+            overlayClassName="!bg-black/40"
+          >
+            {selectedChantier && (
+              <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl p-6 text-white">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
+                    <Building className="h-5 w-5" />
+                    {selectedChantier.nom}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-white/70 shrink-0" />
+                    <span>{selectedChantier.clientName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-white/70 shrink-0" />
+                    <span>
+                      Du {new Date(selectedChantier.dateDebut).toLocaleDateString('fr-FR')} au{' '}
+                      {calculateEndDate(selectedChantier.dateDebut, selectedChantier.duree).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-white/70 shrink-0" />
+                    <span>Durée : {selectedChantier.duree}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/70">Statut :</span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs ${
+                        selectedChantier.statut === 'planifié'
+                          ? 'bg-blue-500/20 text-blue-300'
+                          : selectedChantier.statut === 'en cours'
+                          ? 'bg-yellow-500/20 text-yellow-300'
+                          : 'bg-green-500/20 text-green-300'
+                      }`}
+                    >
+                      {selectedChantier.statut}
+                    </span>
+                  </div>
+                  {selectedChantier.images?.length > 0 && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                      <ImageIcon className="h-4 w-4 text-white/70 shrink-0" />
+                      <span>{selectedChantier.images.length} photo(s)</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </PageWrapper>
   );

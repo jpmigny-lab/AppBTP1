@@ -326,6 +326,12 @@ export default function ProjectsPage() {
               <Card
                 key={chantier.id}
                 className="bg-black/20 backdrop-blur-xl border border-white/10 text-white hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7926/ingest/d82336b5-3a0d-4ff4-89d3-4c82cf47cea4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4401c2'},body:JSON.stringify({sessionId:'4401c2',runId:'pre-fix',hypothesisId:'H10',location:'ProjectsPage.tsx:cardClick',message:'Chantier card clicked -> openEditDialog',data:{chantierId:chantier.id,statut:chantier.statut},timestamp:Date.now()})}).catch(()=>{});
+                  // #endregion
+                  openEditDialog(chantier);
+                }}
               >
                 {chantier.images.length > 0 && (
                   <div className="relative h-48 overflow-hidden rounded-t-lg">
@@ -343,23 +349,23 @@ export default function ProjectsPage() {
                   </div>
                 )}
                 <CardHeader>
-                  <CardTitle className="text-lg">{chantier.nom}</CardTitle>
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <User className="h-4 w-4" />
-                    {chantier.clientName}
+                  <CardTitle className="text-lg truncate">{chantier.nom}</CardTitle>
+                  <div className="flex items-center gap-2 text-sm text-white/70 min-w-0">
+                    <User className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{chantier.clientName}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <Calendar className="h-4 w-4" />
-                    {new Date(chantier.dateDebut).toLocaleDateString('fr-FR')}
+                  <div className="flex items-center gap-2 text-sm text-white/70 min-w-0">
+                    <Calendar className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{new Date(chantier.dateDebut).toLocaleDateString('fr-FR')}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <Clock className="h-4 w-4" />
-                    {chantier.duree}
+                  <div className="flex items-center gap-2 text-sm text-white/70 min-w-0">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{chantier.duree}</span>
                   </div>
-                  <div className="mt-4 flex items-center justify-between gap-2">
-                    <span className={`px-2 py-1 rounded text-xs ${
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <span className={`px-2 py-1 rounded text-xs w-fit shrink-0 ${
                       chantier.statut === 'planifié' ? 'bg-blue-500/20 text-blue-300' :
                       chantier.statut === 'en cours' ? 'bg-green-500/20 text-green-300' :
                       'bg-gray-500/20 text-gray-300'
@@ -370,7 +376,7 @@ export default function ProjectsPage() {
                       variant="outline"
                       size="sm"
                       onClick={(e) => { e.stopPropagation(); openEditDialog(chantier); }}
-                      className="text-white border-white/20 hover:bg-white/10 shrink-0"
+                      className="text-white border-white/20 hover:bg-white/10 flex-1 min-w-[9rem] w-full sm:w-auto sm:flex-none"
                     >
                       <Pencil className="h-4 w-4 mr-1" />
                       Modifier

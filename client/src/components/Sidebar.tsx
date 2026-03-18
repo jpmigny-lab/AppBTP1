@@ -8,7 +8,7 @@ const SIDEBAR_WIDTH = '20rem'; // w-80
 
 const menuItems = [
   { icon: Home, label: 'Vue d\'ensemble', path: '/dashboard' },
-  { icon: Calculator, label: 'Estimation automatique', path: '/dashboard/estimation' },
+  { icon: Calculator, label: 'Estimation IA', path: '/dashboard/estimation-ia' },
   { icon: Building, label: 'Mes Chantiers', path: '/dashboard/projects' },
   { icon: Calendar, label: 'Planning', path: '/dashboard/planning' },
   { icon: Workflow, label: 'CRM Pipeline', path: '/dashboard/crm' },

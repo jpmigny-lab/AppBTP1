@@ -21,6 +21,8 @@ import ProspectsPage from "@/pages/ProspectsPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import PlanningPage from "@/pages/PlanningPage";
 import EstimationPage from "@/pages/EstimationPage";
+import EstimationIAPage from "@/pages/EstimationIAPage";
+import EstimationHistoryPage from "@/pages/EstimationHistoryPage";
 import ClientsPage from "@/pages/ClientsPage";
 import CRMPipelinePage from "@/pages/CRMPipelinePage";
 import TeamPage from "@/pages/TeamPage";
@@ -77,6 +79,10 @@ function Router() {
         return <ProtectedRoute><Dashboard /></ProtectedRoute>;
       case "/dashboard/estimation":
         return <ProtectedRoute><EstimationPage /></ProtectedRoute>;
+      case "/dashboard/estimation-ia":
+        return <ProtectedRoute><EstimationIAPage /></ProtectedRoute>;
+      case "/dashboard/estimation/historique":
+        return <ProtectedRoute><EstimationHistoryPage /></ProtectedRoute>;
       case "/dashboard/quotes":
       case "/dashboard/quotes/nouveau":
         return <ProtectedRoute><QuotesPage /></ProtectedRoute>;

@@ -214,6 +214,110 @@ export interface TeamInvitation {
   updated_at: string;
 }
 
+// --- Estimations IA ---
+export type EstimationStatus = 'brouillon' | 'converti en chantier'
+
+export interface EstimationRow {
+  id: string
+  user_id: string
+  created_at: string
+  updated_at: string
+  status: EstimationStatus
+  form_data: any
+  result_json: any
+}
+
+export async function createEstimation(input: {
+  form_data: any
+  result_json: any
+  status: EstimationStatus
+}): Promise<EstimationRow | null> {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) throw new Error('User not authenticated')
+
+    const { data, error } = await supabase
+      .from('estimations')
+      .insert({
+        user_id: userId,
+        status: input.status,
+        form_data: input.form_data,
+        result_json: input.result_json,
+        updated_at: new Date().toISOString(),
+      })
+      .select('*')
+      .single()
+
+    if (error) throw error
+    return data as any
+  } catch (error) {
+    console.error('Error creating estimation:', error)
+    return null
+  }
+}
+
+export async function listEstimations(): Promise<EstimationRow[]> {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) return []
+
+    const { data, error } = await supabase
+      .from('estimations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return (data || []) as any
+  } catch (error) {
+    console.error('Error listing estimations:', error)
+    return []
+  }
+}
+
+export async function getEstimationById(id: string): Promise<EstimationRow | null> {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) return null
+
+    const { data, error } = await supabase
+      .from('estimations')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single()
+
+    if (error) throw error
+    return data as any
+  } catch (error) {
+    console.error('Error getting estimation:', error)
+    return null
+  }
+}
+
+export async function updateEstimationStatus(id: string, status: EstimationStatus): Promise<boolean> {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) throw new Error('User not authenticated')
+
+    const { error } = await supabase
+      .from('estimations')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', userId)
+
+    return !error
+  } catch (error) {
+    console.error('Error updating estimation status:', error)
+    return false
+  }
+}
+
+export async function convertEstimationToChantier(id: string): Promise<boolean> {
+  // MVP: on marque comme converti (la création chantier DB dépend de ta table chantiers)
+  return await updateEstimationStatus(id, 'converti en chantier')
+}
+
 // Générer un token unique pour l'invitation
 function generateInvitationToken(): string {
   return crypto.randomUUID() + '-' + Date.now().toString(36);
