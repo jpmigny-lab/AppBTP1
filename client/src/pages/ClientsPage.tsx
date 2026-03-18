@@ -4,12 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Plus, Building, Mail, Phone, Image as ImageIcon, Pencil } from 'lucide-react';
+import { User, Plus, Building, Mail, Phone, Image as ImageIcon, Pencil, FileText, Receipt } from 'lucide-react';
 import { useState } from 'react';
+import { Link, useLocation } from 'wouter';
 import { useChantiers, Client } from '@/context/ChantiersContext';
+import { useDevisStore } from '@/store/devisStore';
+import { formatEuros } from '@/lib/devisCalculs';
 
 export default function ClientsPage() {
+  const [, setLocation] = useLocation();
   const { clients, chantiers, addClient, updateClient } = useChantiers();
+  const savedList = useDevisStore((s) => s.savedList);
+  const loadDevis = useDevisStore((s) => s.loadDevis);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -19,6 +25,14 @@ export default function ClientsPage() {
   const clientChantiers = selectedClient
     ? chantiers.filter(c => c.clientId === selectedClient.id)
     : [];
+
+  // Devis du client (correspondance par nom)
+  const clientDevis = selectedClient
+    ? savedList.filter((d) => (d.state?.client?.nom ?? '').trim().toLowerCase() === selectedClient.name.trim().toLowerCase())
+    : [];
+
+  // Factures : pour l'instant aucune donnée (module à venir)
+  const clientFactures: { id: string; numero: string; date: string; montantTTC: number }[] = [];
 
   const openEditDialog = (client: Client) => {
     setEditingClient(client);
@@ -161,7 +175,7 @@ export default function ClientsPage() {
             {clients.map((client) => (
               <Card
                 key={client.id}
-                className="bg-black/20 backdrop-blur-xl border border-white/10 text-white hover:shadow-lg transition-shadow cursor-pointer"
+                className="bg-black/20 backdrop-blur-xl border border-white/10 text-white hover:shadow-lg transition-shadow cursor-pointer min-w-0"
                 onClick={() => setSelectedClient(client)}
               >
                 <CardHeader>
@@ -182,19 +196,23 @@ export default function ClientsPage() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <Mail className="h-4 w-4" />
-                    {client.email}
+                <CardContent className="space-y-2 min-w-0 overflow-hidden">
+                  <div className="flex items-center gap-2 text-sm text-white min-w-0">
+                    <User className="h-4 w-4 shrink-0 text-white/70" />
+                    <span className="min-w-0 truncate font-medium" title={client.name}>{client.name}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <Phone className="h-4 w-4" />
-                    {client.phone}
+                  <div className="flex items-center gap-2 text-sm text-white/70 min-w-0">
+                    <Phone className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 truncate" title={client.phone}>{client.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-white/70 min-w-0">
+                    <Mail className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 truncate" title={client.email}>{client.email}</span>
                   </div>
                   <div className="mt-4 pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-2 text-sm text-white/70">
-                      <Building className="h-4 w-4" />
-                      {chantiers.filter(c => c.clientId === client.id).length} chantier(s)
+                    <div className="flex items-center gap-2 text-sm text-white/70 min-w-0">
+                      <Building className="h-4 w-4 shrink-0" />
+                      <span className="min-w-0">{chantiers.filter(c => c.clientId === client.id).length} chantier(s)</span>
                     </div>
                   </div>
                 </CardContent>
@@ -209,14 +227,82 @@ export default function ClientsPage() {
                   <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
                     <User className="h-6 w-6 text-white/70" />
                   </div>
-                  <div>
-                    <div className="text-xl">{selectedClient.name}</div>
-                    <div className="text-sm font-normal text-white/70">{selectedClient.email}</div>
-                    <div className="text-sm font-normal text-white/70">{selectedClient.phone}</div>
+                  <div className="min-w-0">
+                    <div className="text-xl truncate">{selectedClient.name}</div>
+                    <div className="text-sm font-normal text-white/70 truncate" title={selectedClient.email}>{selectedClient.email}</div>
+                    <div className="text-sm font-normal text-white/70 truncate" title={selectedClient.phone}>{selectedClient.phone}</div>
                   </div>
                 </CardTitle>
               </CardHeader>
             </Card>
+
+            {/* Devis du client */}
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Devis ({clientDevis.length})
+            </h2>
+            {clientDevis.length === 0 ? (
+              <Card className="bg-black/20 backdrop-blur-xl border border-white/10 text-white mb-6">
+                <CardContent className="py-8 text-center">
+                  <FileText className="h-10 w-10 mx-auto mb-3 text-white/50" />
+                  <p className="text-white/70">Aucun devis enregistré pour ce client</p>
+                  <Button asChild variant="outline" className="mt-4 text-white border-white/20 hover:bg-white/10">
+                    <Link href="/dashboard/quotes/nouveau">Créer un devis</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-black/20 backdrop-blur-xl border border-white/10 text-white mb-6">
+                <CardContent className="p-4">
+                  <ul className="space-y-2">
+                    {clientDevis.map((d) => (
+                      <li key={d.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            loadDevis(d.id);
+                            setLocation('/dashboard/quotes/nouveau');
+                          }}
+                          className="w-full text-left p-3 rounded-lg bg-black/20 border border-white/10 hover:bg-white/10 transition-colors flex items-center justify-between gap-2"
+                        >
+                          <span className="font-medium truncate min-w-0">N° {d.state?.details?.numeroDevis ?? '—'}</span>
+                          <span className="text-white/70 text-sm shrink-0">
+                            {d.state?.recap?.totalTTC != null ? formatEuros(d.state.recap.totalTTC) : '—'} TTC
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Factures du client */}
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Factures ({clientFactures.length})
+            </h2>
+            {clientFactures.length === 0 ? (
+              <Card className="bg-black/20 backdrop-blur-xl border border-white/10 text-white mb-6">
+                <CardContent className="py-8 text-center">
+                  <Receipt className="h-10 w-10 mx-auto mb-3 text-white/50" />
+                  <p className="text-white/70">Aucune facture pour ce client</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-black/20 backdrop-blur-xl border border-white/10 text-white mb-6">
+                <CardContent className="p-4">
+                  <ul className="space-y-2">
+                    {clientFactures.map((f) => (
+                      <li key={f.id} className="p-3 rounded-lg bg-black/20 border border-white/10 flex items-center justify-between">
+                        <span className="font-medium">N° {f.numero}</span>
+                        <span className="text-white/70 text-sm">{f.date} · {formatEuros(f.montantTTC)} TTC</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
 
             <h2 className="text-xl font-semibold text-white mb-4">Chantiers de {selectedClient.name}</h2>
 
