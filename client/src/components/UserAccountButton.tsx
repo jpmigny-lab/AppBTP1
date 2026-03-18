@@ -19,12 +19,12 @@ export function UserAccountButton() {
   const userName = isGuest ? 'Invité (démo)' : (user?.user_metadata?.full_name || userEmail.split('@')[0]);
 
   return (
-    <div className="fixed top-4 right-4 md:top-6 md:right-6 z-50">
+    <div className="fixed top-4 right-4 md:top-auto md:right-auto md:bottom-4 md:left-4 z-50 md:w-[calc(20rem-2rem)]">
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/20 backdrop-blur-xl border border-white/10 text-white hover:bg-black/30 transition-colors shadow-lg"
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/20 backdrop-blur-xl border border-white/10 text-white hover:bg-black/30 transition-colors shadow-lg w-full md:w-auto"
       >
         <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center">
           <User size={16} />
@@ -47,7 +47,7 @@ export function UserAccountButton() {
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute top-full right-0 mt-2 w-64 bg-black/20 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
+              className="absolute top-full right-0 mt-2 w-64 bg-black/20 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 md:top-auto md:bottom-full md:mb-2 md:mt-0"
             >
               <div className="p-4 border-b border-white/10">
                 <div className="flex items-center gap-3">

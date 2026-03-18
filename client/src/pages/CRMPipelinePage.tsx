@@ -1,7 +1,6 @@
 import { PageWrapper } from '@/components/PageWrapper';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail, Workflow } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { CRMPipeline } from '@/components/CRMPipeline';
 
 export default function CRMPipelinePage() {
@@ -23,25 +22,6 @@ export default function CRMPipelinePage() {
       </header>
 
       <main className="flex-1 p-4 md:p-6 space-y-6 ml-0 md:ml-20">
-        {/* Configuration Email */}
-        <Card className="bg-black/20 backdrop-blur-xl border border-white/10 text-white">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Workflow className="h-5 w-5 text-white/70" />
-              Configuration Email
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-white/70 mb-4">
-              Connectez votre email professionnel pour activer les automatisations et recevoir les prospects directement dans votre pipeline.
-            </p>
-            <Button variant="outline" className="w-full text-white border-white/20 hover:bg-white/10">
-              <Mail className="h-4 w-4 mr-2" />
-              Connecter Gmail / Outlook
-            </Button>
-          </CardContent>
-        </Card>
-
         {/* CRM Pipeline */}
         <CRMPipeline />
       </main>

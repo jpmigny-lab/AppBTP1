@@ -5,16 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Sidebar from '@/components/Sidebar'
 import { UserAccountButton } from '@/components/UserAccountButton'
+import { cn } from '@/lib/utils'
 import { 
   Building, 
   FileText, 
   Wand2, 
   Euro,
-  TrendingUp,
   Plus
 } from 'lucide-react'
 import { Link, useLocation } from 'wouter'
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 const chartData = [
   { name: 'Jan', revenus: 120000, depenses: 80000 },
@@ -23,13 +23,6 @@ const chartData = [
   { name: 'Avr', revenus: 165000, depenses: 95000 },
   { name: 'Mai', revenus: 180000, depenses: 100000 },
   { name: 'Jun', revenus: 195000, depenses: 105000 },
-]
-
-const conversionData = [
-  { name: 'Sem 1', taux: 65 },
-  { name: 'Sem 2', taux: 68 },
-  { name: 'Sem 3', taux: 71 },
-  { name: 'Sem 4', taux: 73 },
 ]
 
 export default function Dashboard() {
@@ -98,6 +91,7 @@ function OverviewTab() {
           change="+3 en cours"
           icon={Building}
           delay={0.2}
+          onClick={() => setLocation('/dashboard/projects?statut=en-cours')}
         />
         <MetricCard
           title="Devis En Attente"
@@ -105,18 +99,12 @@ function OverviewTab() {
           change="Réponses attendues"
           icon={FileText}
           delay={0.3}
-        />
-        <MetricCard
-          title="Taux de Conversion"
-          value="73%"
-          change="+5.2%"
-          icon={TrendingUp}
-          delay={0.4}
+          onClick={() => setLocation('/dashboard/quotes')}
         />
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Card className="bg-black/20 backdrop-blur-xl border border-white/10 shadow-xl rounded-2xl text-white">
           <CardHeader>
             <CardTitle className="text-white font-light">Évolution des Revenus</CardTitle>
@@ -143,30 +131,6 @@ function OverviewTab() {
                 />
                 <Area type="monotone" dataKey="revenus" stroke="#a78bfa" fillOpacity={1} fill="url(#colorRevenus)" />
               </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-black/20 backdrop-blur-xl border border-white/10 shadow-xl rounded-2xl text-white">
-          <CardHeader>
-            <CardTitle className="text-white font-light">Taux de Conversion</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={conversionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis dataKey="name" stroke="rgba(255, 255, 255, 0.7)" />
-                <YAxis stroke="rgba(255, 255, 255, 0.7)" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '12px',
-                    color: '#fff'
-                  }}
-                />
-                <Line type="monotone" dataKey="taux" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 4 }} />
-              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -214,14 +178,43 @@ function OverviewTab() {
   )
 }
 
-function MetricCard({ title, value, change, icon: Icon, delay }: { title: string, value: string, change: string, icon: any, delay: number }) {
+function MetricCard({
+  title,
+  value,
+  change,
+  icon: Icon,
+  delay,
+  onClick,
+}: {
+  title: string
+  value: string
+  change: string
+  icon: any
+  delay: number
+  onClick?: () => void
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
     >
-      <Card className="bg-black/20 backdrop-blur-xl border border-white/10 shadow-xl rounded-2xl hover:shadow-2xl transition-shadow text-white">
+      <Card
+        className={cn(
+          "bg-black/20 backdrop-blur-xl border border-white/10 shadow-xl rounded-2xl hover:shadow-2xl transition-shadow text-white",
+          onClick ? "cursor-pointer hover:bg-black/30" : ""
+        )}
+        onClick={onClick}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={
+          onClick
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") onClick()
+              }
+            : undefined
+        }
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-white/70">{title}</CardTitle>
           <Icon className="h-5 w-5 text-violet-400" />
