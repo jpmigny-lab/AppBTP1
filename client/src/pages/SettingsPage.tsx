@@ -30,6 +30,17 @@ export default function SettingsPage() {
   const [newPrix, setNewPrix] = useState<number | ''>('');
 
   useEffect(() => {
+    if (localStorage.getItem(MATERIALS_SETTINGS_KEY) == null) {
+      const t = Date.now();
+      const demo: MaterialSetting[] = [
+        { id: 'dm1', nom: 'Carrelage grès cérame 60×60', prix: 42.5, updatedAt: t },
+        { id: 'dm2', nom: 'Enduit façade PSE', prix: 38, updatedAt: t },
+        { id: 'dm3', nom: 'Peinture acrylique blanche 10 L', prix: 89, updatedAt: t },
+        { id: 'dm4', nom: 'Plaque de plâtre BA13', prix: 11.2, updatedAt: t },
+        { id: 'dm5', nom: 'Laine de verre 100 mm (m²)', prix: 8.9, updatedAt: t },
+      ];
+      localStorage.setItem(MATERIALS_SETTINGS_KEY, JSON.stringify(demo));
+    }
     const loaded = safeParseMaterials(localStorage.getItem(MATERIALS_SETTINGS_KEY))
       .filter((m) => m && m.nom)
       .map((m) => ({
@@ -40,10 +51,6 @@ export default function SettingsPage() {
       }))
       .sort((a, b) => b.updatedAt - a.updatedAt);
     setMaterials(loaded);
-
-    // #region agent log
-    fetch('http://127.0.0.1:7926/ingest/d82336b5-3a0d-4ff4-89d3-4c82cf47cea4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4401c2'},body:JSON.stringify({sessionId:'4401c2',runId:'pre-fix',hypothesisId:'H7',location:'SettingsPage.tsx:load',message:'Loaded materials settings',data:{count:loaded.length},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
   }, []);
 
   const persist = (next: MaterialSetting[]) => {

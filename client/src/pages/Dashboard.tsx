@@ -15,6 +15,8 @@ import {
 } from 'lucide-react'
 import { Link, useLocation } from 'wouter'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useChantiers } from '@/context/ChantiersContext'
+import { useDevisStore } from '@/store/devisStore'
 
 const chartData = [
   { name: 'Jan', revenus: 120000, depenses: 80000 },
@@ -73,30 +75,34 @@ export default function Dashboard() {
 // Overview Tab Component
 function OverviewTab() {
   const [, setLocation] = useLocation();
-  
+  const { chantiers } = useChantiers();
+  const savedList = useDevisStore((s) => s.savedList);
+  const chantiersEnCours = chantiers.filter((c) => c.statut === 'en cours').length;
+  const nbDevis = savedList.length;
+
   return (
     <div className="space-y-6">
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Chiffre d'Affaires"
-          value="€165,000"
-          change="+18.2%"
+          value="€128,400"
+          change="Démo — YTD"
           icon={Euro}
           delay={0.1}
         />
         <MetricCard
           title="Chantiers Actifs"
-          value="12"
-          change="+3 en cours"
+          value={String(chantiersEnCours)}
+          change="En cours dans Mes chantiers"
           icon={Building}
           delay={0.2}
           onClick={() => setLocation('/dashboard/projects?statut=en-cours')}
         />
         <MetricCard
           title="Devis En Attente"
-          value="8"
-          change="Réponses attendues"
+          value={String(nbDevis)}
+          change="Dans la liste Devis"
           icon={FileText}
           delay={0.3}
           onClick={() => setLocation('/dashboard/quotes')}

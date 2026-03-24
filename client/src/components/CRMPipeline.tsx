@@ -28,39 +28,79 @@ export function CRMPipeline() {
       name: 'Tous les prospects',
       items: [
         {
-          id: '1',
-          name: 'Jean Dupont',
-          email: 'jean.dupont@example.com',
-          phone: '06 12 34 56 78',
-          company: 'Entreprise ABC',
-          createdAt: '2024-01-15'
-        }
-      ]
+          id: 'p1',
+          name: 'Thomas Leroy',
+          email: 't.leroy@gmail.com',
+          phone: '06 71 22 90 44',
+          company: 'Particulier — Lyon 3e',
+          notes: 'Extension garage — demande devis sous 15 j.',
+          createdAt: '2026-03-02',
+        },
+        {
+          id: 'p2',
+          name: 'Claire Fontaine',
+          email: 'c.fontaine@orange.fr',
+          phone: '06 88 10 33 21',
+          company: 'Maison — Écully',
+          notes: 'Réfection toiture tuiles',
+          createdAt: '2026-03-05',
+        },
+      ],
     },
     {
       id: 'quote',
       name: 'Envoi du devis',
-      items: []
+      items: [
+        {
+          id: 'p3',
+          name: 'Marc Delmas',
+          email: 'marc.delmas@pro.fr',
+          phone: '04 78 55 12 00',
+          company: 'Restaurant Le Patio',
+          notes: 'Devis terrasse bois 45 m²',
+          createdAt: '2026-02-28',
+        },
+      ],
     },
     {
       id: 'followup1',
       name: 'Relance 1',
-      items: []
+      items: [
+        {
+          id: 'p4',
+          name: 'Isabelle Moreau',
+          email: 'i.moreau@email.com',
+          phone: '06 45 67 89 01',
+          company: 'Appartement — Villeurbanne',
+          notes: 'Peinture 3 pièces — relance J+7',
+          createdAt: '2026-02-20',
+        },
+      ],
     },
     {
       id: 'followup2',
       name: 'Relance 2',
-      items: []
+      items: [],
     },
     {
       id: 'followup3',
       name: 'Relance 3',
-      items: []
+      items: [],
     },
     {
       id: 'followup4',
       name: 'Relance 4',
-      items: []
+      items: [
+        {
+          id: 'p5',
+          name: 'Bâtiment Les Iris',
+          email: 'syndic@lesiris.fr',
+          phone: '04 72 90 11 22',
+          company: 'Syndic copropriété',
+          notes: 'Ravalement façade — attente AG',
+          createdAt: '2026-01-12',
+        },
+      ],
     },
   ])
 

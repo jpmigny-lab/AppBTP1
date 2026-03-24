@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, Plus, User, Mail, Phone, Trash2, Building, Key, Edit2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { fetchTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, type TeamMember } from '@/lib/supabase';
+import { DEMO_TEAM_MEMBERS, isDemoTeamMemberId } from '@/data/demoTeam';
 import { Copy, Check } from 'lucide-react';
 
 export default function TeamPage() {
@@ -33,9 +34,10 @@ export default function TeamPage() {
     setLoading(true);
     try {
       const data = await fetchTeamMembers();
-      setMembers(data);
+      setMembers(data.length > 0 ? data : DEMO_TEAM_MEMBERS);
     } catch (error) {
       console.error('Error loading members:', error);
+      setMembers(DEMO_TEAM_MEMBERS);
     } finally {
       setLoading(false);
     }
@@ -83,6 +85,15 @@ export default function TeamPage() {
   const handleUpdateMember = async () => {
     if (!editingMember) return;
 
+    if (isDemoTeamMemberId(editingMember.id)) {
+      setMembers((prev) =>
+        prev.map((m) => (m.id === editingMember.id ? { ...editingMember } : m)),
+      );
+      setEditingMember(null);
+      setIsEditDialogOpen(false);
+      return;
+    }
+
     const result = await updateTeamMember(editingMember.id, {
       name: editingMember.name,
       role: editingMember.role,
@@ -100,11 +111,16 @@ export default function TeamPage() {
   };
 
   const handleDeleteMember = async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) {
-      const success = await deleteTeamMember(id);
-      if (success) {
-        await loadMembers();
-      }
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) return;
+
+    if (isDemoTeamMemberId(id)) {
+      setMembers((prev) => prev.filter((m) => m.id !== id));
+      return;
+    }
+
+    const success = await deleteTeamMember(id);
+    if (success) {
+      await loadMembers();
     }
   };
 
@@ -210,6 +226,13 @@ export default function TeamPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!loading &&
+              members.length > 0 &&
+              members.every((m) => isDemoTeamMemberId(m.id)) && (
+              <p className="text-sm text-amber-200/90 bg-amber-500/10 border border-amber-400/30 rounded-lg px-3 py-2">
+                Exemple d’équipe pour la démo. Avec un compte connecté et des membres dans Supabase, la liste affichera vos vrais collaborateurs.
+              </p>
+            )}
             {loading ? (
               <div className="text-center py-8">
                 <p className="text-white/70">Chargement...</p>

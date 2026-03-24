@@ -15,6 +15,11 @@ import {
   DevisSauvegarde,
 } from '@/types/devis';
 import { calculerRecap } from '@/lib/devisCalculs';
+import {
+  DEMO_EMETTEUR,
+  getDemoSavedDevis,
+  getDemoCatalogue,
+} from '@/data/demoSeed';
 
 const LS_EMETTEUR = 'devis:emetteur';
 const LS_NUMERO = 'devis:lastNumber';
@@ -181,6 +186,28 @@ function safeParse<T>(key: string, fallback: T): T {
     return fallback;
   }
 }
+
+/** Premier chargement navigateur : devis sauvegardés, émetteur, catalogue de démo. */
+function ensureDemoDevisLocalStorage() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (!localStorage.getItem(LS_SAVED)) {
+      const demo = getDemoSavedDevis();
+      localStorage.setItem(LS_SAVED, JSON.stringify(demo));
+      localStorage.setItem(LS_NUMERO, '3');
+    }
+    if (!localStorage.getItem(LS_EMETTEUR)) {
+      localStorage.setItem(LS_EMETTEUR, JSON.stringify(DEMO_EMETTEUR));
+    }
+    if (!localStorage.getItem(LS_CATALOGUE)) {
+      localStorage.setItem(LS_CATALOGUE, JSON.stringify(getDemoCatalogue()));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+ensureDemoDevisLocalStorage();
 
 export const useDevisStore = create<DevisStore>((set, get) => ({
   state: buildInitialState(),
