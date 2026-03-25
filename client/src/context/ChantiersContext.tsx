@@ -12,6 +12,14 @@ function loadFromStorage<T>(key: string, fallback: T): T {
   }
 }
 
+function normalizeChantier(raw: Chantier): Chantier {
+  const ids = raw.assignedMemberIds;
+  return {
+    ...raw,
+    assignedMemberIds: Array.isArray(ids) ? ids.filter((x) => typeof x === 'string') : [],
+  };
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -37,6 +45,7 @@ const defaultChantiers: Chantier[] = [
     duree: '4 semaines',
     images: [],
     statut: 'en cours',
+    assignedMemberIds: ['demo-tm-1', 'demo-tm-3'],
   },
   {
     id: 'ch2',
@@ -47,6 +56,7 @@ const defaultChantiers: Chantier[] = [
     duree: '6 semaines',
     images: [],
     statut: 'en cours',
+    assignedMemberIds: ['demo-tm-2'],
   },
   {
     id: 'ch3',
@@ -57,6 +67,7 @@ const defaultChantiers: Chantier[] = [
     duree: '2 semaines',
     images: [],
     statut: 'planifié',
+    assignedMemberIds: [],
   },
   {
     id: 'ch4',
@@ -67,6 +78,7 @@ const defaultChantiers: Chantier[] = [
     duree: '10 jours',
     images: [],
     statut: 'terminé',
+    assignedMemberIds: [],
   },
   {
     id: 'ch5',
@@ -77,6 +89,7 @@ const defaultChantiers: Chantier[] = [
     duree: '3 semaines',
     images: [],
     statut: 'terminé',
+    assignedMemberIds: [],
   },
 ];
 
@@ -89,6 +102,8 @@ export interface Chantier {
   duree: string;
   images: string[];
   statut: 'planifié' | 'en cours' | 'terminé';
+  /** Membres affectés (ids `team_members` ou démo `demo-tm-*`). Vide = visible par toute l’équipe. */
+  assignedMemberIds: string[];
 }
 
 interface ChantiersContextType {
@@ -104,9 +119,10 @@ const ChantiersContext = createContext<ChantiersContextType | undefined>(undefin
 
 export function ChantiersProvider({ children }: { children: ReactNode }) {
   const [clients, setClients] = useState<Client[]>(() => loadFromStorage(LS_CLIENTS, defaultClients));
-  const [chantiers, setChantiers] = useState<Chantier[]>(() =>
-    loadFromStorage(LS_CHANTIERS, defaultChantiers),
-  );
+  const [chantiers, setChantiers] = useState<Chantier[]>(() => {
+    const loaded = loadFromStorage<Chantier[]>(LS_CHANTIERS, defaultChantiers);
+    return loaded.map(normalizeChantier);
+  });
 
   const addClient = useCallback((client: Client) => {
     setClients((prev) => {
@@ -138,8 +154,9 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addChantier = useCallback((chantier: Chantier) => {
+    const normalized = normalizeChantier(chantier);
     setChantiers((prev) => {
-      const next = [...prev, chantier];
+      const next = [...prev, normalized];
       try {
         localStorage.setItem(LS_CHANTIERS, JSON.stringify(next));
       } catch (_) {}
@@ -149,7 +166,9 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
 
   const updateChantier = useCallback((id: string, updates: Partial<Chantier>) => {
     setChantiers((prev) => {
-      const next = prev.map((c) => (c.id === id ? { ...c, ...updates } : c));
+      const next = prev.map((c) =>
+        c.id === id ? normalizeChantier({ ...c, ...updates }) : c,
+      );
       try {
         localStorage.setItem(LS_CHANTIERS, JSON.stringify(next));
       } catch (_) {}

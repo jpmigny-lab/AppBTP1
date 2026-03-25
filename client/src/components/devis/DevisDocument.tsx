@@ -135,6 +135,8 @@ const styles = StyleSheet.create({
 
 interface Props {
   state: DevisState;
+  /** Affichage « FACTURE » dans l’en-tête PDF (numéro lu dans `details.numeroDevis`, ex. FAC-2026-001) */
+  documentKind?: 'devis' | 'facture';
 }
 
 function safeFormatEuros(val: number | undefined | null): string {
@@ -142,7 +144,10 @@ function safeFormatEuros(val: number | undefined | null): string {
   return formatEuros(Number.isFinite(n) ? n : 0);
 }
 
-export const DevisDocument = React.memo(function DevisDocument({ state }: Props) {
+export const DevisDocument = React.memo(function DevisDocument({
+  state,
+  documentKind = 'devis',
+}: Props) {
   const {
     emetteur,
     client,
@@ -174,7 +179,9 @@ export const DevisDocument = React.memo(function DevisDocument({ state }: Props)
             <Text>{emetteur.email}</Text>
           </View>
           <View style={styles.headerRight}>
-            <Text style={styles.devisTitle}>DEVIS</Text>
+            <Text style={styles.devisTitle}>
+              {documentKind === 'facture' ? 'FACTURE' : 'DEVIS'}
+            </Text>
             <Text style={{ fontFamily: 'Helvetica-Bold', marginTop: 4 }}>
               N° {details.numeroDevis}
             </Text>

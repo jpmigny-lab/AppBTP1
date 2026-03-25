@@ -28,6 +28,7 @@ import CRMPipelinePage from "@/pages/CRMPipelinePage";
 import TeamPage from "@/pages/TeamPage";
 import SettingsPage from "@/pages/SettingsPage";
 import MailPage from "@/pages/MailPage";
+import InvoicesPage from "@/pages/InvoicesPage";
 import NotFound from "@/pages/not-found";
 
 const pageVariants = {
@@ -75,6 +76,8 @@ function Router() {
       case "/loading":
         return <LoadingRedirectPage />;
       case "/team-dashboard":
+      case "/team-dashboard/projects":
+      case "/team-dashboard/planning":
         return <TeamDashboard />;
       case "/dashboard":
         return <ProtectedRoute><Dashboard /></ProtectedRoute>;
@@ -87,6 +90,9 @@ function Router() {
       case "/dashboard/quotes":
       case "/dashboard/quotes/nouveau":
         return <ProtectedRoute><QuotesPage /></ProtectedRoute>;
+      case "/dashboard/invoices":
+      case "/dashboard/invoices/nouveau":
+        return <ProtectedRoute><InvoicesPage /></ProtectedRoute>;
       case "/dashboard/ai-visualization":
         return <ProtectedRoute><AIVisualizationPage /></ProtectedRoute>;
       case "/dashboard/prospects":

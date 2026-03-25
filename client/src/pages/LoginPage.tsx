@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useLocation } from "wouter"
 import { Users, Key, Settings } from "lucide-react"
 import { fetchTeamMembers, verifyTeamMemberCode, verifyAdminCode, type TeamMember } from "@/lib/supabase"
+import { DEMO_TEAM_MEMBERS } from "@/data/demoTeam"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -37,7 +38,7 @@ export default function LoginPage() {
     setLoadingMembers(true)
     try {
       const members = await fetchTeamMembers()
-      setTeamMembers(members)
+      setTeamMembers(members.length > 0 ? members : DEMO_TEAM_MEMBERS)
     } catch (error) {
       console.error('Error loading team members:', error)
     } finally {

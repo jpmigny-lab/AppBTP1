@@ -397,6 +397,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
         state: s.state,
         createdAt: now,
         updatedAt: now,
+        statut: 'brouillon',
       };
       const savedList = [...s.savedList, devis];
       localStorage.setItem(LS_SAVED, JSON.stringify(savedList));

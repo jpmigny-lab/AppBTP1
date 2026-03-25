@@ -1,26 +1,22 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Calculator, Building, Calendar, Workflow, FileText, Wand2, Users, User, Menu, Settings, Mail } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { type SidebarNavItem, SIDEBAR_ALWAYS_VISIBLE_PATHS } from '@/lib/sidebarNav';
+import { useSidebarNavVisibility } from '@/hooks/useSidebarNavVisibility';
 
 const SIDEBAR_WIDTH = '20rem'; // w-80
 
-const menuItems = [
-  { icon: Home, label: 'Vue d\'ensemble', path: '/dashboard' },
-  { icon: Calculator, label: 'Estimation IA', path: '/dashboard/estimation-ia' },
-  { icon: Building, label: 'Mes Chantiers', path: '/dashboard/projects' },
-  { icon: Calendar, label: 'Planning', path: '/dashboard/planning' },
-  { icon: Workflow, label: 'CRM Pipeline', path: '/dashboard/crm' },
-  { icon: FileText, label: 'Devis', path: '/dashboard/quotes' },
-  { icon: Wand2, label: 'Visualisation IA', path: '/dashboard/ai-visualization' },
-  { icon: Users, label: 'Équipe', path: '/dashboard/team' },
-  { icon: User, label: 'Clients', path: '/dashboard/clients' },
-  { icon: Mail, label: 'E-mail', path: '/dashboard/mail' },
-  { icon: Settings, label: 'Paramètres', path: '/dashboard/settings' },
-];
-
-function NavContent({ location, onNavigate }: { location: string; onNavigate?: () => void }) {
+function NavContent({
+  location,
+  items,
+  onNavigate,
+}: {
+  location: string;
+  items: SidebarNavItem[];
+  onNavigate?: () => void;
+}) {
   return (
     <>
       <div className="mb-6">
@@ -31,10 +27,11 @@ function NavContent({ location, onNavigate }: { location: string; onNavigate?: (
       <div>
         <p className="text-xs font-medium uppercase tracking-wide mb-3 text-white/70">Navigation</p>
         <ul className="space-y-1">
-          {menuItems.map((item) => {
-            const isActive = item.path === '/dashboard'
-              ? location === '/dashboard'
-              : location === item.path || location.startsWith(item.path + '/');
+          {items.map((item) => {
+            const isActive =
+              item.path === '/dashboard'
+                ? location === '/dashboard'
+                : location === item.path || location.startsWith(item.path + '/');
             return (
               <li key={item.path}>
                 <Link href={item.path} onClick={onNavigate}>
@@ -69,6 +66,15 @@ function NavContent({ location, onNavigate }: { location: string; onNavigate?: (
 export default function Sidebar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { hidden, orderedItems } = useSidebarNavVisibility();
+
+  const visibleItems = useMemo(
+    () =>
+      orderedItems.filter(
+        (item) => SIDEBAR_ALWAYS_VISIBLE_PATHS.has(item.path) || !hidden.has(item.path)
+      ),
+    [hidden, orderedItems]
+  );
 
   return (
     <>
@@ -89,7 +95,7 @@ export default function Sidebar() {
           className="w-[min(20rem,85vw)] max-w-[20rem] border-white/10 bg-black/20 backdrop-blur-xl p-6 pt-12 [&>button]:text-white [&>button]:hover:bg-white/10 [&>button]:right-4 [&>button]:top-4"
         >
           <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
-          <NavContent location={location} onNavigate={() => setMobileOpen(false)} />
+          <NavContent location={location} items={visibleItems} onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
 
@@ -99,7 +105,7 @@ export default function Sidebar() {
         style={{ width: SIDEBAR_WIDTH }}
       >
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 pt-8">
-          <NavContent location={location} />
+          <NavContent location={location} items={visibleItems} />
         </div>
       </nav>
 

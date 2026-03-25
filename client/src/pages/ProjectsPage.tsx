@@ -5,10 +5,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building, Plus, Calendar, Clock, User, Image as ImageIcon, X, Pencil } from 'lucide-react';
+import { Building, Plus, Calendar, Clock, User, Users, Image as ImageIcon, X, Pencil } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useChantiers, Chantier, Client } from '@/context/ChantiersContext';
+import { Checkbox } from '@/components/ui/checkbox';
+import { fetchTeamMembers, type TeamMember } from '@/lib/supabase';
+import { DEMO_TEAM_MEMBERS } from '@/data/demoTeam';
 
 export default function ProjectsPage() {
   const { chantiers, clients, addChantier, addClient, updateChantier } = useChantiers();
@@ -27,9 +30,27 @@ export default function ProjectsPage() {
     clientId: '',
     dateDebut: '',
     duree: '',
-    images: [] as string[]
+    images: [] as string[],
+    assignedMemberIds: [] as string[],
   });
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const data = await fetchTeamMembers();
+        if (!alive) return;
+        setTeamMembers(data.length > 0 ? data : DEMO_TEAM_MEMBERS);
+      } catch {
+        if (alive) setTeamMembers(DEMO_TEAM_MEMBERS);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -65,7 +86,8 @@ export default function ProjectsPage() {
       clientId: chantier.clientId,
       dateDebut: chantier.dateDebut,
       duree: chantier.duree,
-      images: [...chantier.images]
+      images: [...chantier.images],
+      assignedMemberIds: [...(chantier.assignedMemberIds ?? [])],
     });
     setUploadedImages([]);
     setIsDialogOpen(true);
@@ -74,8 +96,17 @@ export default function ProjectsPage() {
   const closeDialog = () => {
     setIsDialogOpen(false);
     setEditingChantier(null);
-    setNewChantier({ nom: '', clientId: '', dateDebut: '', duree: '', images: [] });
+    setNewChantier({ nom: '', clientId: '', dateDebut: '', duree: '', images: [], assignedMemberIds: [] });
     setUploadedImages([]);
+  };
+
+  const toggleMemberAssign = (memberId: string) => {
+    setNewChantier((prev) => ({
+      ...prev,
+      assignedMemberIds: prev.assignedMemberIds.includes(memberId)
+        ? prev.assignedMemberIds.filter((id) => id !== memberId)
+        : [...prev.assignedMemberIds, memberId],
+    }));
   };
 
   const handleSaveChantier = () => {
@@ -93,7 +124,8 @@ export default function ProjectsPage() {
         clientName,
         dateDebut: newChantier.dateDebut,
         duree: newChantier.duree,
-        images: newChantier.images
+        images: newChantier.images,
+        assignedMemberIds: newChantier.assignedMemberIds,
       });
     } else {
       const chantier: Chantier = {
@@ -104,7 +136,8 @@ export default function ProjectsPage() {
         dateDebut: newChantier.dateDebut,
         duree: newChantier.duree,
         images: newChantier.images,
-        statut: 'planifié'
+        statut: 'planifié',
+        assignedMemberIds: newChantier.assignedMemberIds,
       };
       addChantier(chantier);
     }
@@ -153,7 +186,14 @@ export default function ProjectsPage() {
                 setIsDialogOpen(open);
                 if (!open) closeDialog();
                 else if (!editingChantier) {
-                  setNewChantier({ nom: '', clientId: '', dateDebut: '', duree: '', images: [] });
+                  setNewChantier({
+                    nom: '',
+                    clientId: '',
+                    dateDebut: '',
+                    duree: '',
+                    images: [],
+                    assignedMemberIds: [],
+                  });
                   setUploadedImages([]);
                 }
               }}>
@@ -208,6 +248,39 @@ export default function ProjectsPage() {
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-white flex items-center gap-2">
+                      <Users className="h-4 w-4 opacity-80" />
+                      Équipe sur le chantier
+                    </Label>
+                    <p className="text-xs text-white/60">
+                      Coche les personnes affectées. Si aucune case n&apos;est cochée, tous les collaborateurs
+                      avec accès « chantiers » voient ce projet dans leur espace.
+                    </p>
+                    <div className="max-h-40 overflow-y-auto rounded-lg border border-white/20 bg-white/10 p-2 space-y-2">
+                      {teamMembers.length === 0 ? (
+                        <p className="text-sm text-white/50 px-1">Aucun membre (ajoutez-en dans Équipe).</p>
+                      ) : (
+                        teamMembers.map((m) => (
+                          <label
+                            key={m.id}
+                            className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-white/10 cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={newChantier.assignedMemberIds.includes(m.id)}
+                              onCheckedChange={() => toggleMemberAssign(m.id)}
+                              className="border-white/40 data-[state=checked]:bg-violet-500 data-[state=checked]:text-white data-[state=checked]:border-violet-500"
+                            />
+                            <span className="text-sm text-white">
+                              {m.name}
+                              <span className="text-white/50"> — {m.role}</span>
+                            </span>
+                          </label>
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -326,12 +399,7 @@ export default function ProjectsPage() {
               <Card
                 key={chantier.id}
                 className="bg-black/20 backdrop-blur-xl border border-white/10 text-white hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7926/ingest/d82336b5-3a0d-4ff4-89d3-4c82cf47cea4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4401c2'},body:JSON.stringify({sessionId:'4401c2',runId:'pre-fix',hypothesisId:'H10',location:'ProjectsPage.tsx:cardClick',message:'Chantier card clicked -> openEditDialog',data:{chantierId:chantier.id,statut:chantier.statut},timestamp:Date.now()})}).catch(()=>{});
-                  // #endregion
-                  openEditDialog(chantier);
-                }}
+                onClick={() => openEditDialog(chantier)}
               >
                 {chantier.images.length > 0 && (
                   <div className="relative h-48 overflow-hidden rounded-t-lg">
@@ -363,6 +431,18 @@ export default function ProjectsPage() {
                   <div className="flex items-center gap-2 text-sm text-white/70 min-w-0">
                     <Clock className="h-4 w-4 shrink-0" />
                     <span className="truncate">{chantier.duree}</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-sm text-white/65 min-w-0 pt-1">
+                    <Users className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span className="line-clamp-2">
+                      {chantier.assignedMemberIds?.length ? (
+                        chantier.assignedMemberIds
+                          .map((id) => teamMembers.find((tm) => tm.id === id)?.name ?? id)
+                          .join(', ')
+                      ) : (
+                        <span className="text-white/45">Toute l&apos;équipe</span>
+                      )}
+                    </span>
                   </div>
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <span className={`px-2 py-1 rounded text-xs w-fit shrink-0 ${

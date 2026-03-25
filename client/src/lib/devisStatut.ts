@@ -15,6 +15,12 @@ export const DEVIS_STATUT_LABELS: Record<DevisStatut, string> = {
   en_retard: 'En retard',
 };
 
+/** Libellés sur l’écran Factures (le statut interne reste `payee`) */
+export const FACTURE_STATUT_LABELS: Record<DevisStatut, string> = {
+  ...DEVIS_STATUT_LABELS,
+  payee: 'Payé',
+};
+
 /** Bordure carte = état actif (couleurs maquette) */
 export const DEVIS_STATUT_ROW_CLASS: Record<DevisStatut, string> = {
   brouillon:

@@ -162,6 +162,18 @@ export interface DevisSauvegarde {
   statut?: DevisStatut;
 }
 
+/** Facture : même structure métier qu’un devis pour PDF / formulaire ; lien optionnel vers le devis signé */
+export interface FactureSauvegarde {
+  id: string;
+  nom: string;
+  state: DevisState;
+  /** Devis source lorsque la facture est créée automatiquement (statut Signé) */
+  devisSourceId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  statut?: DevisStatut;
+}
+
 // ─── Checklist ────────────────────────────────────────────────────────────────
 
 export interface ChecklistItem {

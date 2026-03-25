@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { DEMO_TEAM_MEMBERS } from '@/data/demoTeam';
 
 // Supabase client configuration
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://hvnjlxxcxfxvuwlmnwtw.supabase.co';
@@ -144,11 +145,18 @@ export async function verifyTeamMemberCode(code: string, invitationToken?: strin
       .eq('user_id', userId)
       .single();
 
-    if (error || !data) return null;
-    return data;
+    if (data && !error) return data;
+
+    const demoMember = DEMO_TEAM_MEMBERS.find(
+      (m) => m.login_code === code.trim() && m.status === 'actif',
+    );
+    return demoMember ?? null;
   } catch (error) {
     console.error('Error verifying code:', error);
-    return null;
+    const demoMember = DEMO_TEAM_MEMBERS.find(
+      (m) => m.login_code === code.trim() && m.status === 'actif',
+    );
+    return demoMember ?? null;
   }
 }
 
