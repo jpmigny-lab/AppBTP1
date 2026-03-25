@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Calculator, Building, Calendar, Workflow, FileText, Wand2, Users, User, Menu, Settings } from 'lucide-react';
+import { Home, Calculator, Building, Calendar, Workflow, FileText, Wand2, Users, User, Menu, Settings, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 
@@ -16,6 +16,7 @@ const menuItems = [
   { icon: Wand2, label: 'Visualisation IA', path: '/dashboard/ai-visualization' },
   { icon: Users, label: 'Équipe', path: '/dashboard/team' },
   { icon: User, label: 'Clients', path: '/dashboard/clients' },
+  { icon: Mail, label: 'E-mail', path: '/dashboard/mail' },
   { icon: Settings, label: 'Paramètres', path: '/dashboard/settings' },
 ];
 

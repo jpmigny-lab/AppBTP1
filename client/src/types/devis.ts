@@ -149,12 +149,17 @@ export interface ModeleDevis {
   createdAt: string;
 }
 
+/** Cycle de suivi côté liste (aligné maquette : Envoyée / Payée / En retard + Brouillon avant envoi) */
+export type DevisStatut = 'brouillon' | 'envoyee' | 'payee' | 'en_retard';
+
 export interface DevisSauvegarde {
   id: string;
   nom: string;
   state: DevisState;
   createdAt: string;
   updatedAt: string;
+  /** Absent sur anciennes données → traité comme `brouillon` au chargement */
+  statut?: DevisStatut;
 }
 
 // ─── Checklist ────────────────────────────────────────────────────────────────

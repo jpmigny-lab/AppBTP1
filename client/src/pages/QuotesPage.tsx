@@ -1,13 +1,27 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import { BlobProvider } from '@react-pdf/renderer';
 import Sidebar from '@/components/Sidebar';
 import { UserAccountButton } from '@/components/UserAccountButton';
 import { DevisForm } from '@/components/devis/DevisForm';
+import { DevisDocument } from '@/components/devis/DevisDocument';
 import { DevisPreview } from '@/components/devis/DevisPreview';
-import { MentionsChecklist, usePDFPeutEtreGenere } from '@/components/devis/MentionsChecklist';
+import {
+  MentionsChecklist,
+  pdfPeutEtreGenerePourState,
+  usePDFPeutEtreGenere,
+} from '@/components/devis/MentionsChecklist';
 import { useDevisStore } from '@/store/devisStore';
 import { ouvrirPDFNatif, telechargerPDF, ouvrirEmailClient } from '@/lib/pdfExport';
 import { formatEuros } from '@/lib/devisCalculs';
+import { cn } from '@/lib/utils';
+import type { DevisStatut, DevisState } from '@/types/devis';
+import {
+  DEVIS_STATUT_LABELS,
+  DEVIS_STATUT_ROW_CLASS,
+  DEVIS_STATUTS_VISIBLES,
+  devisStatutBadgeClass,
+} from '@/lib/devisStatut';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +42,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Save, FileDown, Copy, Mail, Plus, List, FileText, Trash2 } from 'lucide-react';
+import {
+  Save,
+  FileDown,
+  Copy,
+  Mail,
+  Plus,
+  List,
+  FileText,
+  Trash2,
+  Eye,
+  ChevronRight,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function QuotesPage() {
@@ -46,8 +71,11 @@ export default function QuotesPage() {
   const loadDevis = useDevisStore((s) => s.loadDevis);
   const duplicateDevis = useDevisStore((s) => s.duplicateDevis);
   const deleteDevis = useDevisStore((s) => s.deleteDevis);
+  const updateDevisStatut = useDevisStore((s) => s.updateDevisStatut);
   const [devisToDelete, setDevisToDelete] = useState<string | null>(null);
+  const [previewDevisId, setPreviewDevisId] = useState<string | null>(null);
   const peutGenererPDF = usePDFPeutEtreGenere();
+  const previewDevis = savedList.find((d) => d.id === previewDevisId) ?? null;
 
   const handleNouveauDevis = () => {
     resetDevis();
@@ -105,6 +133,35 @@ export default function QuotesPage() {
     toast({ title: 'Email', description: 'Ouverture du client mail avec sujet et corps pré-remplis.' });
   };
 
+  const handleTelechargerDevisSauvegarde = async (
+    e: React.MouseEvent,
+    savedState: DevisState,
+  ) => {
+    e.stopPropagation();
+    if (!pdfPeutEtreGenerePourState(savedState)) {
+      toast({
+        title: 'PDF indisponible',
+        description:
+          'Ouvrez le devis et complétez les champs obligatoires (SIRET, dates, prestations…).',
+        variant: 'destructive',
+      });
+      return;
+    }
+    try {
+      await telechargerPDF(savedState);
+      toast({
+        title: 'Téléchargement',
+        description: 'Le PDF a été téléchargé.',
+      });
+    } catch {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de générer le PDF.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden z-10 flex w-full">
       <Sidebar />
@@ -113,7 +170,7 @@ export default function QuotesPage() {
       {isListView ? (
         /* Vue liste des devis — même fond que le reste du dashboard */
         <div className="flex-1 min-w-0 min-h-screen overflow-y-auto pt-20 pl-14 md:pt-6 md:pl-0">
-          <div className="p-4 md:p-6 max-w-3xl mx-auto">
+          <div className="p-4 md:p-6 max-w-6xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-2xl font-light tracking-tight text-white drop-shadow-lg">
@@ -155,57 +212,115 @@ export default function QuotesPage() {
                 {savedList.map((d) => {
                   const ttc = d.state.recap?.totalTTC ?? 0;
                   const clientNom = d.state.client?.nom || '—';
-                  const dateLabel = d.updatedAt
-                    ? new Date(d.updatedAt).toLocaleDateString('fr-FR', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })
-                    : '';
+                  const statut: DevisStatut = d.statut ?? 'brouillon';
+                  const sousTitre =
+                    d.state.details?.lieuExecution?.trim() || clientNom;
                   return (
                     <li key={d.id}>
                       <Card
-                        className="cursor-pointer transition-colors bg-black/20 backdrop-blur-xl border-white/10 text-white hover:bg-black/30"
+                        className={cn(
+                          'cursor-pointer transition-all backdrop-blur-xl text-white',
+                          DEVIS_STATUT_ROW_CLASS[statut],
+                        )}
                         onClick={() => handleOuvrirDevis(d.id)}
                       >
-                        <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium truncate text-white">{d.nom}</p>
-                            <p className="text-sm text-white/70 mt-0.5">
-                              N° {d.state.details?.numeroDevis ?? '—'} · {clientNom}
-                            </p>
-                            <p className="text-xs text-white/60 mt-1">{dateLabel}</p>
+                        <CardContent className="p-2.5 sm:p-3 flex flex-col gap-2">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                              <div className="shrink-0 w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
+                                <FileText className="h-4.5 w-4.5 text-white/85" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-white truncate text-[15px] tracking-tight">
+                                  {d.state.details?.numeroDevis ?? '—'}
+                                </p>
+                                <p className="text-sm text-white/65 truncate mt-0.5">
+                                  {sousTitre}
+                                </p>
+                                <p className="text-xs text-white/45 truncate mt-1">
+                                  {d.nom}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end sm:gap-3">
+                              <div className="flex items-center gap-1.5 text-white/90 tabular-nums">
+                                <span className="text-sm font-semibold">
+                                  {formatEuros(ttc)}
+                                </span>
+                                <ChevronRight className="h-4 w-4 text-white/35 hidden sm:block" />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-white/85 hover:bg-white/10 hover:text-white shrink-0"
+                                  aria-label="Ouvrir le devis"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewDevisId(d.id);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-white/85 hover:bg-white/10 hover:text-white shrink-0"
+                                  aria-label="Télécharger le PDF"
+                                  onClick={(e) =>
+                                    void handleTelechargerDevisSauvegarde(e, d.state)
+                                  }
+                                >
+                                  <FileDown className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-white/80 hover:bg-white/10 hover:text-white shrink-0"
+                                  aria-label="Dupliquer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    duplicateDevis(d.id);
+                                    toast({
+                                      title: 'Devis dupliqué',
+                                      description:
+                                        'Une copie a été ajoutée à la liste.',
+                                    });
+                                  }}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-red-300/90 hover:bg-red-500/20 hover:text-red-200 shrink-0"
+                                  aria-label="Supprimer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDevisToDelete(d.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-sm font-medium text-white/90">
-                              {formatEuros(ttc)} TTC
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-white/80 hover:bg-white/10 hover:text-white"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                duplicateDevis(d.id);
-                                toast({
-                                  title: 'Devis dupliqué',
-                                  description: 'Une copie a été ajoutée à la liste.',
-                                });
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-300/90 hover:bg-red-500/20 hover:text-red-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDevisToDelete(d.id);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+
+                          <div className="flex flex-wrap gap-1.5 justify-end pt-1 border-t border-white/10">
+                            {DEVIS_STATUTS_VISIBLES.map((key) => (
+                              <button
+                                key={key}
+                                type="button"
+                                className={devisStatutBadgeClass(statut, key)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateDevisStatut(d.id, key);
+                                }}
+                              >
+                                {DEVIS_STATUT_LABELS[key]}
+                              </button>
+                            ))}
                           </div>
                         </CardContent>
                       </Card>
@@ -378,6 +493,43 @@ export default function QuotesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={!!previewDevis}
+        onOpenChange={(open) => {
+          if (!open) setPreviewDevisId(null);
+        }}
+      >
+        <DialogContent className="max-w-[95vw] w-[1100px] h-[90vh] p-0 bg-black/80 border-white/20 overflow-hidden">
+          {previewDevis ? (
+            <BlobProvider document={<DevisDocument state={previewDevis.state} />}>
+              {({ url, loading, error }) => {
+                if (loading) {
+                  return (
+                    <div className="h-full w-full flex items-center justify-center text-white/70">
+                      Génération du PDF...
+                    </div>
+                  );
+                }
+                if (error || !url) {
+                  return (
+                    <div className="h-full w-full flex items-center justify-center text-red-300 px-4 text-sm">
+                      Impossible d&apos;afficher le PDF de ce devis.
+                    </div>
+                  );
+                }
+                return (
+                  <iframe
+                    src={url}
+                    className="h-full w-full border-0"
+                    title={`PDF ${previewDevis.state.details.numeroDevis}`}
+                  />
+                );
+              }}
+            </BlobProvider>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

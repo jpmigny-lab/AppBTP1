@@ -157,9 +157,30 @@ export function getDemoSavedDevis(): DevisSauvegarde[] {
   });
 
   return [
-    { id: uuidv4(), nom: 'Martin — Salle de bain', state: state1, createdAt: now, updatedAt: now },
-    { id: uuidv4(), nom: 'Dupont — Cuisine', state: state2, createdAt: now, updatedAt: now },
-    { id: uuidv4(), nom: 'SCI Bellevue — Local', state: state3, createdAt: now, updatedAt: now },
+    {
+      id: uuidv4(),
+      nom: 'Martin — Salle de bain',
+      state: state1,
+      createdAt: now,
+      updatedAt: now,
+      statut: 'envoyee',
+    },
+    {
+      id: uuidv4(),
+      nom: 'Dupont — Cuisine',
+      state: state2,
+      createdAt: now,
+      updatedAt: now,
+      statut: 'en_retard',
+    },
+    {
+      id: uuidv4(),
+      nom: 'SCI Bellevue — Local',
+      state: state3,
+      createdAt: now,
+      updatedAt: now,
+      statut: 'payee',
+    },
   ];
 }
 

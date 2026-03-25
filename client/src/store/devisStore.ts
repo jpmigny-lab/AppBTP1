@@ -13,6 +13,7 @@ import {
   PrestationFavorite,
   ModeleDevis,
   DevisSauvegarde,
+  DevisStatut,
 } from '@/types/devis';
 import { calculerRecap } from '@/lib/devisCalculs';
 import {
@@ -166,6 +167,7 @@ interface DevisStore {
   loadDevis: (id: string) => void;
   duplicateDevis: (id: string) => void;
   deleteDevis: (id: string) => void;
+  updateDevisStatut: (id: string, statut: DevisStatut) => void;
 
   addToCatalogue: (prestation: Omit<PrestationFavorite, 'id'>) => void;
   removeFromCatalogue: (id: string) => void;
@@ -383,6 +385,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
           nom,
           state: s.state,
           updatedAt: now,
+          statut: found.statut ?? 'brouillon',
         };
         const savedList = s.savedList.map((d) => (d.id === overwriteId ? updated : d));
         localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
@@ -424,6 +427,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        statut: found.statut ?? 'brouillon',
       };
       const savedList = [...s.savedList, clone];
       localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
@@ -438,6 +442,17 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
         savedList,
         ...(s.loadedDevisId === id ? { state: buildInitialState(), loadedDevisId: null } : {}),
       };
+    }),
+
+  updateDevisStatut: (id, statut) =>
+    set((s) => {
+      const savedList = s.savedList.map((d) =>
+        d.id === id
+          ? { ...d, statut, updatedAt: new Date().toISOString() }
+          : d,
+      );
+      localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+      return { savedList };
     }),
 
   addToCatalogue: (prestation) =>

@@ -1,10 +1,11 @@
 import { useDevisStore } from '@/store/devisStore';
 import { getLignes } from '@/lib/devisCalculs';
-import type { ChecklistItem } from '@/types/devis';
+import type { ChecklistItem, DevisState } from '@/types/devis';
 import { Check, AlertCircle } from 'lucide-react';
 
-export function useMentionsChecklist(): ChecklistItem[] {
-  const state = useDevisStore((s) => s.state);
+export function getMentionsChecklistForState(
+  state: DevisState,
+): ChecklistItem[] {
   const { emetteur, client, details, items, recap, conditions, mentions } =
     state;
   const lignes = getLignes(items);
@@ -84,6 +85,16 @@ export function useMentionsChecklist(): ChecklistItem[] {
         !mentions.assuranceDecennaleActive || !!emetteur.assuranceDecennale,
     },
   ];
+}
+
+export function useMentionsChecklist(): ChecklistItem[] {
+  const state = useDevisStore((s) => s.state);
+  return getMentionsChecklistForState(state);
+}
+
+export function pdfPeutEtreGenerePourState(state: DevisState): boolean {
+  const checklist = getMentionsChecklistForState(state);
+  return checklist.filter((i) => i.critique).every((i) => i.valide);
 }
 
 export function usePDFPeutEtreGenere(): boolean {
