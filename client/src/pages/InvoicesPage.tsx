@@ -254,78 +254,75 @@ export default function InvoicesPage() {
                         )}
                         onClick={() => handleOuvrirFacture(f.id)}
                       >
-                        <CardContent className="p-2.5 sm:p-3 flex flex-col gap-2">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-start gap-3 min-w-0 flex-1">
-                              <div className="shrink-0 w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
-                                <Receipt className="h-4 w-4 text-white/85" />
+                        <CardContent className="p-1 sm:p-1.5 flex flex-col gap-0.5">
+                          <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-start gap-2 min-w-0 flex-1">
+                              <div className="shrink-0 w-6 h-6 rounded-md bg-white/10 border border-white/15 flex items-center justify-center">
+                                <Receipt className="h-3 w-3 text-white/85" />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="font-semibold text-white truncate text-[15px] tracking-tight">
+                                <p className="font-semibold text-white truncate text-xs tracking-tight">
                                   {f.state.details?.numeroDevis ?? '—'}
                                 </p>
-                                <p className="text-sm text-white/65 truncate mt-0.5">
+                                <p className="text-[11px] text-white/65 truncate">
                                   {sousTitre}
-                                </p>
-                                <p className="text-xs text-white/45 truncate mt-1">
-                                  {f.nom} · {sourceLabel}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end sm:gap-3">
-                              <div className="flex items-center gap-1.5 text-white/90 tabular-nums">
-                                <span className="text-sm font-semibold">
+                            <div className="flex flex-wrap items-center justify-between gap-1 sm:justify-end sm:gap-1.5">
+                              <div className="flex items-center gap-1 text-white/90 tabular-nums">
+                                <span className="text-xs font-semibold">
                                   {formatEuros(ttc)}
                                 </span>
-                                <ChevronRight className="h-4 w-4 text-white/35 hidden sm:block" />
+                                <ChevronRight className="h-3.5 w-3.5 text-white/35 hidden sm:block" />
                               </div>
                               <div className="flex items-center gap-1">
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8 text-white/85 hover:bg-white/10 hover:text-white shrink-0"
+                                  className="h-5 w-5 text-white/85 hover:bg-white/10 hover:text-white shrink-0"
                                   aria-label="Voir le PDF"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setPreviewFactureId(f.id);
                                   }}
                                 >
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8 text-white/85 hover:bg-white/10 hover:text-white shrink-0"
+                                  className="h-5 w-5 text-white/85 hover:bg-white/10 hover:text-white shrink-0"
                                   aria-label="Télécharger le PDF"
                                   onClick={(e) =>
                                     void handleTelechargerFactureSauvegarde(e, f)
                                   }
                                 >
-                                  <FileDown className="h-4 w-4" />
+                                  <FileDown className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8 text-red-300/90 hover:bg-red-500/20 hover:text-red-200 shrink-0"
+                                  className="h-5 w-5 text-red-300/90 hover:bg-red-500/20 hover:text-red-200 shrink-0"
                                   aria-label="Supprimer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setFactureToDelete(f.id);
                                   }}
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-1.5 justify-end pt-1 border-t border-white/10">
+                          <div className="flex flex-wrap gap-0.5 justify-end pt-0 border-t border-white/10">
                             {DEVIS_STATUTS_VISIBLES.map((key) => (
                               <button
                                 key={key}
                                 type="button"
-                                className={devisStatutBadgeClass(statut, key)}
+                                className={cn(devisStatutBadgeClass(statut, key), "px-1.5 py-0.5 text-[10px] leading-none")}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   updateFactureStatut(f.id, key);
