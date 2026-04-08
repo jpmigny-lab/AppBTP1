@@ -9,7 +9,6 @@ import {
   Users,
   User,
   Settings,
-  Mail,
 } from 'lucide-react';
 
 export type SidebarNavItem = {
@@ -28,7 +27,6 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
   { icon: Receipt, label: 'Factures', path: '/dashboard/invoices' },
   { icon: Users, label: 'Équipe', path: '/dashboard/team' },
   { icon: User, label: 'Clients', path: '/dashboard/clients' },
-  { icon: Mail, label: 'E-mail', path: '/dashboard/mail' },
   { icon: Settings, label: 'Paramètres', path: '/dashboard/settings' },
 ];
 

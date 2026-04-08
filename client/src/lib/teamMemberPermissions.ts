@@ -1,4 +1,5 @@
 import { getSidebarPrefs } from '@/lib/sidebarPrefs';
+import { saveSetting } from '@/lib/repositories/appDataRepository';
 
 export const PERMISSION_KEYS = [
   'quotes',
@@ -174,6 +175,7 @@ function normalizeStored(p: Partial<StoredMemberPermissions>): StoredMemberPermi
 
 function saveMap(map: Record<string, StoredMemberPermissions>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+  void saveSetting('team_member_permissions', map);
 }
 
 export function getMemberPermissions(memberId: string): StoredMemberPermissions {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase';
+import { runFirstLoginMigration } from '@/lib/repositories/firstLoginMigration';
 
 /** ID utilisé pour l'utilisateur invité (accès dashboard sans connexion) */
 export const GUEST_USER_ID = 'guest-demo';
@@ -51,6 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        void runFirstLoginMigration();
+      }
     });
 
     // Écouter les changements d'authentification
@@ -61,6 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        void runFirstLoginMigration();
+      }
     });
 
     return () => subscription.unsubscribe();

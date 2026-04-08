@@ -1,4 +1,5 @@
 import { SIDEBAR_NAV_ITEMS } from './sidebarNav';
+import { saveSetting } from '@/lib/repositories/appDataRepository';
 
 const PREFS_KEY = 'aosrenov.settings.sidebar.prefs.v1';
 const LEGACY_HIDDEN_KEY = 'aosrenov.settings.sidebar.hiddenPaths.v1';
@@ -75,6 +76,7 @@ export function setSidebarPrefs(prefs: SidebarPrefs) {
     pathOrder: normalizePathOrder(prefs.pathOrder),
   };
   localStorage.setItem(PREFS_KEY, JSON.stringify(normalized));
+  void saveSetting('sidebar_prefs', normalized);
 }
 
 export function notifySidebarPrefsChange() {

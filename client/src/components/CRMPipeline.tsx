@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Mail, User, Phone, Calendar, FileText } from "lucide-react"
 import { motion } from "framer-motion"
+import { loadCrmColumns, saveCrmColumns } from "@/lib/repositories/appDataRepository"
 
 interface Prospect {
   id: string
@@ -109,6 +110,19 @@ export function CRMPipeline() {
   const [showFollowupModal, setShowFollowupModal] = useState(false)
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null)
   const [selectedColumn, setSelectedColumn] = useState<string>("")
+
+  useEffect(() => {
+    void (async () => {
+      const res = await loadCrmColumns()
+      if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
+        setColumns(res.data as Column[])
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
+    void saveCrmColumns(columns as unknown[])
+  }, [columns])
 
   const handleDragStart = (prospect: Prospect, columnId: string) => {
     setDraggedItem({ prospect, columnId })

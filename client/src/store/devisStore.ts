@@ -21,6 +21,7 @@ import {
   getDemoSavedDevis,
   getDemoCatalogue,
 } from '@/data/demoSeed';
+import { loadDevisList, saveDevisList } from '@/lib/repositories/appDataRepository';
 
 const LS_EMETTEUR = 'devis:emetteur';
 const LS_NUMERO = 'devis:lastNumber';
@@ -389,6 +390,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
         };
         const savedList = s.savedList.map((d) => (d.id === overwriteId ? updated : d));
         localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+        void saveDevisList(savedList as any[]);
         return { savedList };
       }
       const devis: DevisSauvegarde = {
@@ -401,6 +403,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
       };
       const savedList = [...s.savedList, devis];
       localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+      void saveDevisList(savedList as any[]);
       return { savedList, loadedDevisId: devis.id };
     }),
 
@@ -432,6 +435,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
       };
       const savedList = [...s.savedList, clone];
       localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+      void saveDevisList(savedList as any[]);
       return { savedList };
     }),
 
@@ -439,6 +443,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
     set((s) => {
       const savedList = s.savedList.filter((d) => d.id !== id);
       localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+      void saveDevisList(savedList as any[]);
       return {
         savedList,
         ...(s.loadedDevisId === id ? { state: buildInitialState(), loadedDevisId: null } : {}),
@@ -453,6 +458,7 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
           : d,
       );
       localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+      void saveDevisList(savedList as any[]);
       return { savedList };
     }),
 
@@ -507,3 +513,11 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
       return { modeles };
     }),
 }));
+
+void (async () => {
+  const res = await loadDevisList();
+  if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
+    useDevisStore.setState({ savedList: res.data as any });
+    localStorage.setItem(LS_SAVED, JSON.stringify(res.data));
+  }
+})();

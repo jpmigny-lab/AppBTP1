@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { getChantiers, getClients, saveChantiers, saveClients } from '@/lib/repositories/appDataRepository';
 
 const LS_CLIENTS = 'aosrenov:clients';
 const LS_CHANTIERS = 'aosrenov:chantiers';
@@ -124,12 +125,27 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
     return loaded.map(normalizeChantier);
   });
 
+  useEffect(() => {
+    void (async () => {
+      const [clientsRes, chantiersRes] = await Promise.all([getClients(), getChantiers()]);
+      if (clientsRes.ok && clientsRes.data.length > 0) {
+        setClients(clientsRes.data as Client[]);
+        localStorage.setItem(LS_CLIENTS, JSON.stringify(clientsRes.data));
+      }
+      if (chantiersRes.ok && chantiersRes.data.length > 0) {
+        setChantiers((chantiersRes.data as Chantier[]).map(normalizeChantier));
+        localStorage.setItem(LS_CHANTIERS, JSON.stringify(chantiersRes.data));
+      }
+    })();
+  }, []);
+
   const addClient = useCallback((client: Client) => {
     setClients((prev) => {
       const next = [...prev, client];
       try {
         localStorage.setItem(LS_CLIENTS, JSON.stringify(next));
       } catch (_) {}
+      void saveClients(next as any);
       return next;
     });
   }, []);
@@ -140,6 +156,7 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(LS_CLIENTS, JSON.stringify(next));
       } catch (_) {}
+      void saveClients(next as any);
       return next;
     });
     if (updates.name !== undefined) {
@@ -148,6 +165,7 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
         try {
           localStorage.setItem(LS_CHANTIERS, JSON.stringify(next));
         } catch (_) {}
+        void saveChantiers(next as any);
         return next;
       });
     }
@@ -160,6 +178,7 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(LS_CHANTIERS, JSON.stringify(next));
       } catch (_) {}
+      void saveChantiers(next as any);
       return next;
     });
   }, []);
@@ -172,6 +191,7 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
       try {
         localStorage.setItem(LS_CHANTIERS, JSON.stringify(next));
       } catch (_) {}
+      void saveChantiers(next as any);
       return next;
     });
   }, []);

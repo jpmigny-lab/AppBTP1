@@ -9,6 +9,7 @@ import type {
 import { calculerRecap } from '@/lib/devisCalculs';
 import { useDevisStore } from '@/store/devisStore';
 import { DEMO_EMETTEUR } from '@/data/demoSeed';
+import { loadFacturesList, saveFacturesList } from '@/lib/repositories/appDataRepository';
 
 const LS_FACTURES = 'facture:saved';
 const LS_FACTURE_NUM = 'facture:lastNumber';
@@ -166,6 +167,7 @@ export const useFactureStore = create<FactureStore>((set, get) => ({
         f.id === overwriteId ? updated : f,
       );
       localStorage.setItem(LS_FACTURES, JSON.stringify(savedList));
+      void saveFacturesList(savedList as any[]);
       set({ savedList, loadedFactureId: overwriteId });
       return;
     }
@@ -182,12 +184,14 @@ export const useFactureStore = create<FactureStore>((set, get) => ({
     };
     const savedList = [...get().savedList, facture];
     localStorage.setItem(LS_FACTURES, JSON.stringify(savedList));
+    void saveFacturesList(savedList as any[]);
     set({ savedList, loadedFactureId: id });
   },
 
   deleteFacture: (id) => {
     const savedList = get().savedList.filter((f) => f.id !== id);
     localStorage.setItem(LS_FACTURES, JSON.stringify(savedList));
+    void saveFacturesList(savedList as any[]);
     set((s) => ({
       savedList,
       loadedFactureId: s.loadedFactureId === id ? null : s.loadedFactureId,
@@ -201,6 +205,7 @@ export const useFactureStore = create<FactureStore>((set, get) => ({
         : f,
     );
     localStorage.setItem(LS_FACTURES, JSON.stringify(savedList));
+    void saveFacturesList(savedList as any[]);
     set({ savedList });
   },
 
@@ -227,6 +232,7 @@ export const useFactureStore = create<FactureStore>((set, get) => ({
     };
     const savedList = [...get().savedList, facture];
     localStorage.setItem(LS_FACTURES, JSON.stringify(savedList));
+    void saveFacturesList(savedList as any[]);
     set({ savedList });
   },
 
@@ -236,3 +242,11 @@ export const useFactureStore = create<FactureStore>((set, get) => ({
     }
   },
 }));
+
+void (async () => {
+  const res = await loadFacturesList();
+  if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
+    useFactureStore.setState({ savedList: res.data as any });
+    localStorage.setItem(LS_FACTURES, JSON.stringify(res.data));
+  }
+})();

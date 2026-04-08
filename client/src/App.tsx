@@ -23,7 +23,6 @@ import ClientsPage from "@/pages/ClientsPage";
 import CRMPipelinePage from "@/pages/CRMPipelinePage";
 import TeamPage from "@/pages/TeamPage";
 import SettingsPage from "@/pages/SettingsPage";
-import MailPage from "@/pages/MailPage";
 import InvoicesPage from "@/pages/InvoicesPage";
 import NotFound from "@/pages/not-found";
 
@@ -97,8 +96,6 @@ function Router() {
         return <ProtectedRoute><TeamPage /></ProtectedRoute>;
       case "/dashboard/settings":
         return <ProtectedRoute><SettingsPage /></ProtectedRoute>;
-      case "/dashboard/mail":
-        return <ProtectedRoute><MailPage /></ProtectedRoute>;
       default:
         return <NotFound />;
     }
