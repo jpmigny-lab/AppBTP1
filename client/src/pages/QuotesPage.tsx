@@ -142,7 +142,13 @@ export default function QuotesPage() {
       toast({ title: 'Email envoyé', description: `Message envoyé via Resend (${sent.messageId}).` });
     } catch (e: any) {
       const code = e?.code || 'UPSTREAM_ERROR';
+      const status = Number(e?.status || 0);
       const message =
+        status === 404
+          ? "Route backend d’envoi introuvable sur l’environnement déployé."
+          : status === 413
+            ? "Le PDF est trop volumineux pour l’API (limite Vercel)."
+            :
         code === 'INVALID_INPUT'
           ? 'Données d’envoi invalides (vérifiez email client et PDF).'
           : code === 'CONFIG_MISSING'

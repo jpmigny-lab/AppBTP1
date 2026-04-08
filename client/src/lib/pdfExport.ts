@@ -54,7 +54,16 @@ function blobToBase64(blob: Blob): Promise<string> {
 }
 
 export async function envoyerDevisParEmail(state: DevisState): Promise<{ messageId: string }> {
-  const element = React.createElement(DevisDocument, { state });
+  // En navigateur, certaines images base64 peuvent casser @react-pdf (Buffer is not defined).
+  // Pour l'envoi email, on génère un PDF sans logo pour fiabiliser le flux.
+  const stateForMail: DevisState = {
+    ...state,
+    emetteur: {
+      ...state.emetteur,
+      logoBase64: null,
+    },
+  };
+  const element = React.createElement(DevisDocument, { state: stateForMail });
   const blob = await pdf(element as React.ReactElement).toBlob();
   const contentBase64 = await blobToBase64(blob);
   const filename = `Devis-${state.details.numeroDevis}.pdf`;
@@ -83,17 +92,34 @@ export async function envoyerDevisParEmail(state: DevisState): Promise<{ message
     },
   };
 
-  const resp = await fetch("/api/mail/send-quote", {
+  const isLocalDev = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+  const apiBase =
+    (import.meta as any).env?.VITE_API_BASE_URL ||
+    (isLocalDev && window.location.port !== "5001" ? "http://localhost:5001" : "");
+  const endpoint = `${apiBase}/api/mail/send-quote`;
+
+  const resp = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
-  const json = await resp.json().catch(() => null);
+  const contentType = resp.headers.get("content-type") || "";
+  const json = contentType.includes("application/json")
+    ? await resp.json().catch(() => null)
+    : null;
+  const textBody = !json ? await resp.text().catch(() => "") : "";
   if (!resp.ok || !json?.ok) {
-    const message = json?.message || "Erreur envoi email";
+    const message =
+      json?.message ||
+      (resp.status === 404
+        ? `Endpoint ${endpoint} introuvable.`
+        : resp.status === 413
+          ? "PDF trop volumineux pour l’API (limite serveur atteinte)."
+          : `Erreur envoi email (${resp.status})${textBody ? `: ${textBody.slice(0, 180)}` : ""}`);
     const err = new Error(message);
     (err as any).code = json?.error || "UPSTREAM_ERROR";
+    (err as any).status = resp.status;
     throw err;
   }
 

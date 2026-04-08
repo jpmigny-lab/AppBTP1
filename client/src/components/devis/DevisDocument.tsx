@@ -196,18 +196,16 @@ export const DevisDocument = React.memo(function DevisDocument({
         <View style={styles.infoRow}>
           <View style={styles.infoBox}>
             <Text style={styles.infoLabel}>Émetteur</Text>
-            <Text>{emetteur.siret ? `SIRET : ${emetteur.siret}` : ''}</Text>
-            <Text>{emetteur.tvaIntra ? `TVA : ${emetteur.tvaIntra}` : ''}</Text>
-            <Text>{emetteur.formeJuridique}</Text>
+            {emetteur.siret ? <Text>{`SIRET : ${emetteur.siret}`}</Text> : null}
+            {emetteur.tvaIntra ? <Text>{`TVA : ${emetteur.tvaIntra}`}</Text> : null}
+            {emetteur.formeJuridique ? <Text>{emetteur.formeJuridique}</Text> : null}
           </View>
           <View style={styles.infoBox}>
             <Text style={styles.infoLabel}>Client</Text>
             <Text style={{ fontFamily: 'Helvetica-Bold' }}>{client.nom}</Text>
-            <Text>{client.adresse}</Text>
-            <Text>
-              {client.codePostal} {client.ville}
-            </Text>
-            <Text>{client.email}</Text>
+            {client.adresse ? <Text>{client.adresse}</Text> : null}
+            {(client.codePostal || client.ville) ? <Text>{`${client.codePostal ?? ''} ${client.ville ?? ''}`.trim()}</Text> : null}
+            {client.email ? <Text>{client.email}</Text> : null}
           </View>
         </View>
 
@@ -395,9 +393,9 @@ export const DevisDocument = React.memo(function DevisDocument({
         </View>
 
         <View style={styles.footer} fixed>
-          <Text>SIRET : {emetteur.siret}</Text>
+          {emetteur.siret ? <Text>SIRET : {emetteur.siret}</Text> : null}
           {emetteur.tvaIntra && <Text>TVA : {emetteur.tvaIntra}</Text>}
-          <Text>{emetteur.formeJuridique}</Text>
+          {emetteur.formeJuridique ? <Text>{emetteur.formeJuridique}</Text> : null}
           <Text>Devis valable jusqu'au {details.dateValidite}</Text>
         </View>
       </Page>
