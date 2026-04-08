@@ -512,6 +512,16 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
     let targetId = s.loadedDevisId;
     let savedList: DevisSauvegarde[];
     let markedAsEnvoyee = false;
+    const numeroCourant = s.state.details?.numeroDevis?.trim();
+
+    // Garde-fou : selon le flux d'ouverture, loadedDevisId peut être vide
+    // alors qu'un devis existant (même numéro) est bien en cours d'édition.
+    if (!targetId && numeroCourant) {
+      const sameNumero = [...s.savedList]
+        .filter((d) => (d.state.details?.numeroDevis ?? '').trim() === numeroCourant)
+        .sort((a, b) => devisUpdatedAtMs(b) - devisUpdatedAtMs(a))[0];
+      if (sameNumero) targetId = sameNumero.id;
+    }
 
     if (!targetId) {
       const devis: DevisSauvegarde = {
