@@ -13,6 +13,21 @@ import {
 
 export type JsonMap = Record<string, unknown>;
 
+/** PostgREST : table absente ou cache schéma pas à jour */
+function friendlyMissingTableError(raw: string, table: 'app_devis' | 'app_factures'): string {
+  const msg = raw || '';
+  if (
+    msg.includes(table) ||
+    (msg.includes('schema cache') && msg.includes('Could not find'))
+  ) {
+    if (table === 'app_devis') {
+      return "Table « app_devis » absente sur ce projet Supabase. Ouvrez le SQL Editor et exécutez le fichier supabase/migrations/20260401_app_data.sql (tout le script), puis réessayez.";
+    }
+    return "Table « app_factures » absente : exécutez la migration supabase/migrations/20260401_app_data.sql dans Supabase.";
+  }
+  return raw;
+}
+
 export async function getClients(): Promise<RepoResult<AppClient[]>> {
   return listAppClients();
 }
@@ -52,7 +67,8 @@ export async function saveDevisList(savedList: unknown[]): Promise<RepoResult<nu
       updated_at: d.updatedAt || new Date().toISOString(),
     }));
     const { error } = await supabase.from('app_devis').upsert(rows, { onConflict: 'id' });
-    if (error) return { ok: false, error: error.message };
+    if (error)
+      return { ok: false, error: friendlyMissingTableError(error.message, 'app_devis') };
     return { ok: true, data: rows.length };
   } catch (error) {
     return { ok: false, error: (error as any)?.message || 'Erreur sauvegarde devis' };
@@ -69,7 +85,8 @@ export async function loadDevisList(): Promise<RepoResult<unknown[]>> {
       .select('*')
       .eq('owner_user_id', userId)
       .order('created_at', { ascending: false });
-    if (error) return { ok: false, error: error.message };
+    if (error)
+      return { ok: false, error: friendlyMissingTableError(error.message, 'app_devis') };
     const mapped = (data || []).map((r: any) => ({
       id: r.id,
       nom: r.nom,
@@ -80,7 +97,13 @@ export async function loadDevisList(): Promise<RepoResult<unknown[]>> {
     }));
     return { ok: true, data: mapped };
   } catch (error) {
-    return { ok: false, error: (error as any)?.message || 'Erreur lecture devis' };
+    return {
+      ok: false,
+      error: friendlyMissingTableError(
+        (error as any)?.message || '',
+        'app_devis',
+      ) || 'Erreur lecture devis',
+    };
   }
 }
 

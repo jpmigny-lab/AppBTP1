@@ -30,6 +30,41 @@ const LS_CATALOGUE = 'devis:catalogue';
 const LS_MODELES = 'devis:modeles';
 const LS_SAVED = 'devis:saved';
 
+function devisUpdatedAtMs(d: DevisSauvegarde): number {
+  return +new Date(d.updatedAt || d.createdAt || 0).getTime();
+}
+
+/**
+ * Évite qu’un chargement Supabase lent n’écrase un statut fraîchement enregistré
+ * (cas fréquent sur Vercel : hydrate initial vs. envoi email).
+ */
+function mergeDevisListsPreferNewer(
+  local: DevisSauvegarde[],
+  remote: DevisSauvegarde[],
+): DevisSauvegarde[] {
+  const ids = new Set<string>([...local.map((d) => d.id), ...remote.map((d) => d.id)]);
+  const out: DevisSauvegarde[] = [];
+  for (const id of ids) {
+    const l = local.find((x) => x.id === id);
+    const r = remote.find((x) => x.id === id);
+    if (!l) {
+      if (r) out.push(r);
+      continue;
+    }
+    if (!r) {
+      out.push(l);
+      continue;
+    }
+    out.push(devisUpdatedAtMs(l) >= devisUpdatedAtMs(r) ? l : r);
+  }
+  return out.sort(
+    (a, b) =>
+      +new Date(b.createdAt || 0).getTime() - +new Date(a.createdAt || 0).getTime(),
+  );
+}
+
+let hydrateDevisInflight: Promise<void> | null = null;
+
 function todayISO(): string {
   return new Date().toISOString().split('T')[0];
 }
@@ -593,12 +628,26 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
 
 /** À appeler une fois la session Supabase connue (voir AuthContext). */
 export async function hydrateDevisListFromSupabase(): Promise<void> {
-  const res = await loadDevisList();
-  if (!res.ok || !Array.isArray(res.data)) return;
-  useDevisStore.setState({ savedList: res.data as DevisSauvegarde[] });
-  try {
-    localStorage.setItem(LS_SAVED, JSON.stringify(res.data));
-  } catch {
-    /* ignore */
-  }
+  if (hydrateDevisInflight) return hydrateDevisInflight;
+
+  hydrateDevisInflight = (async () => {
+    try {
+      const res = await loadDevisList();
+      if (!res.ok || !Array.isArray(res.data)) return;
+      const remote = res.data as DevisSauvegarde[];
+      useDevisStore.setState((s) => {
+        const merged = mergeDevisListsPreferNewer(s.savedList, remote);
+        try {
+          localStorage.setItem(LS_SAVED, JSON.stringify(merged));
+        } catch {
+          /* ignore */
+        }
+        return { savedList: merged };
+      });
+    } finally {
+      hydrateDevisInflight = null;
+    }
+  })();
+
+  return hydrateDevisInflight;
 }
