@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { EstimationInputSchema } from "../shared/estimationIA";
 import { estimerChantier } from "./services/estimation/claude";
+import { sendQuoteEmailWithResend } from "./services/mail/resend";
 
 function normalizeEstimationInput(body: any) {
   const rawType = String(body?.typeChantier ?? body?.type_travaux ?? "").toLowerCase();
@@ -130,6 +131,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .status(502)
         .json({ error: "UPSTREAM_ERROR", message: err?.message });
     }
+  });
+
+  app.post("/api/mail/send-quote", async (req, res) => {
+    const body = req.body ?? {};
+    const fallbackText =
+      typeof body.text === "string" && body.text.trim().length > 0
+        ? body.text
+        : typeof body.html === "string"
+          ? body.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+          : "";
+
+    const result = await sendQuoteEmailWithResend({
+      to: body.to,
+      subject: body.subject,
+      html: body.html,
+      text: fallbackText || undefined,
+      attachments: body.attachments,
+      metadata: body.metadata,
+    });
+
+    if (!result.ok) {
+      if (result.code === "INVALID_INPUT") {
+        return res.status(400).json({ error: result.code, message: result.error });
+      }
+      if (result.code === "CONFIG_MISSING") {
+        return res.status(503).json({ error: result.code, message: result.error });
+      }
+      return res.status(502).json({ error: result.code, message: result.error });
+    }
+
+    return res.status(200).json({ ok: true, messageId: result.data.id });
   });
 
   /** OAuth Gmail / Microsoft : échange du code côté serveur (secret jamais exposé au client) */

@@ -12,7 +12,7 @@ import {
   usePDFPeutEtreGenere,
 } from '@/components/devis/MentionsChecklist';
 import { useDevisStore } from '@/store/devisStore';
-import { ouvrirPDFNatif, telechargerPDF, ouvrirEmailClient } from '@/lib/pdfExport';
+import { envoyerDevisParEmail, ouvrirPDFNatif, telechargerPDF } from '@/lib/pdfExport';
 import { formatEuros } from '@/lib/devisCalculs';
 import { cn } from '@/lib/utils';
 import type { DevisStatut, DevisState } from '@/types/devis';
@@ -132,9 +132,24 @@ export default function QuotesPage() {
     toast({ title: 'Devis dupliqué', description: 'Un nouveau devis a été créé à partir de la copie.' });
   };
 
-  const handleEmail = () => {
-    ouvrirEmailClient(state);
-    toast({ title: 'Email', description: 'Ouverture du client mail avec sujet et corps pré-remplis.' });
+  const handleEmail = async () => {
+    if (!state.client.email?.trim()) {
+      toast({ title: 'Email manquant', description: 'Veuillez renseigner l’email du client.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const sent = await envoyerDevisParEmail(state);
+      toast({ title: 'Email envoyé', description: `Message envoyé via Resend (${sent.messageId}).` });
+    } catch (e: any) {
+      const code = e?.code || 'UPSTREAM_ERROR';
+      const message =
+        code === 'INVALID_INPUT'
+          ? 'Données d’envoi invalides (vérifiez email client et PDF).'
+          : code === 'CONFIG_MISSING'
+            ? 'Configuration serveur Resend manquante.'
+            : e?.message || 'Envoi Resend impossible.';
+      toast({ title: 'Erreur email', description: message, variant: 'destructive' });
+    }
   };
 
   const handleTelechargerDevisSauvegarde = async (

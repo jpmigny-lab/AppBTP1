@@ -37,6 +37,69 @@ export async function telechargerPDF(
   setTimeout(() => URL.revokeObjectURL(blobUrl), 5_000);
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (!result) {
+        reject(new Error("Impossible de convertir le PDF en base64"));
+        return;
+      }
+      resolve(result);
+    };
+    reader.onerror = () => reject(new Error("Erreur FileReader"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function envoyerDevisParEmail(state: DevisState): Promise<{ messageId: string }> {
+  const element = React.createElement(DevisDocument, { state });
+  const blob = await pdf(element as React.ReactElement).toBlob();
+  const contentBase64 = await blobToBase64(blob);
+  const filename = `Devis-${state.details.numeroDevis}.pdf`;
+
+  const payload = {
+    to: state.client.email,
+    subject: `Devis ${state.details.numeroDevis} — ${state.client.nom}`,
+    html: `
+      <p>Bonjour ${state.client.nom},</p>
+      <p>Veuillez trouver en pièce jointe notre devis <strong>${state.details.numeroDevis}</strong>.</p>
+      <p>Montant: <strong>${state.recap.totalTTC.toFixed(2)} EUR TTC</strong></p>
+      <p>Validité: ${state.details.dateValidite}</p>
+      <p>Cordialement,<br/>${state.emetteur.raisonSociale}</p>
+    `,
+    text: `Bonjour ${state.client.nom}, veuillez trouver le devis ${state.details.numeroDevis} en pièce jointe.`,
+    attachments: [
+      {
+        filename,
+        contentBase64,
+        contentType: "application/pdf",
+      },
+    ],
+    metadata: {
+      numeroDevis: state.details.numeroDevis,
+      clientNom: state.client.nom,
+    },
+  };
+
+  const resp = await fetch("/api/mail/send-quote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await resp.json().catch(() => null);
+  if (!resp.ok || !json?.ok) {
+    const message = json?.message || "Erreur envoi email";
+    const err = new Error(message);
+    (err as any).code = json?.error || "UPSTREAM_ERROR";
+    throw err;
+  }
+
+  return { messageId: String(json.messageId) };
+}
+
 /**
  * mailto: ne supporte pas les pièces jointes dans les navigateurs.
  * Ouvre le client mail avec sujet/corps pré-remplis.
