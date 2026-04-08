@@ -139,7 +139,35 @@ export default function QuotesPage() {
     }
     try {
       const sent = await envoyerDevisParEmail(state);
-      toast({ title: 'Email envoyé', description: `Message envoyé via Resend (${sent.messageId}).` });
+
+      let targetId = loadedDevisId;
+      if (targetId) {
+        const existing = savedList.find((d) => d.id === targetId);
+        if (existing) {
+          saveCurrentDevis(existing.nom, targetId);
+        }
+      } else {
+        const nom = `Devis ${state.details.numeroDevis}`;
+        saveCurrentDevis(nom);
+        targetId = useDevisStore.getState().loadedDevisId;
+      }
+
+      let markedAsEnvoyee = false;
+      if (targetId) {
+        const entry = useDevisStore.getState().savedList.find((d) => d.id === targetId);
+        const current = entry?.statut ?? 'brouillon';
+        if (current === 'brouillon' || current === 'envoyee') {
+          updateDevisStatutAndSyncFacture(targetId, 'envoyee', updateDevisStatut);
+          markedAsEnvoyee = true;
+        }
+      }
+
+      toast({
+        title: 'Email envoyé',
+        description: markedAsEnvoyee
+          ? `Message envoyé via Resend (${sent.messageId}). Statut : ${DEVIS_STATUT_LABELS.envoyee} dans la liste des devis.`
+          : `Message envoyé via Resend (${sent.messageId}).`,
+      });
     } catch (e: any) {
       const code = e?.code || 'UPSTREAM_ERROR';
       const status = Number(e?.status || 0);
