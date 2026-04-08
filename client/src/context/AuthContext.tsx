@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { runFirstLoginMigration } from '@/lib/repositories/firstLoginMigration';
+import { hydrateDevisListFromSupabase } from '@/store/devisStore';
 
 /** ID utilisé pour l'utilisateur invité (accès dashboard sans connexion) */
 export const GUEST_USER_ID = 'guest-demo';
@@ -53,20 +54,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) {
-        void runFirstLoginMigration();
+        void runFirstLoginMigration().then(() => hydrateDevisListFromSupabase());
       }
     });
 
     // Écouter les changements d'authentification
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) sessionStorage.removeItem('auth:guest');
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      if (session?.user) {
-        void runFirstLoginMigration();
+      if (
+        session?.user &&
+        (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')
+      ) {
+        void runFirstLoginMigration().then(() => hydrateDevisListFromSupabase());
       }
     });
 

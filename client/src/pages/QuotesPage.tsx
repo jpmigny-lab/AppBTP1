@@ -76,6 +76,7 @@ export default function QuotesPage() {
   const duplicateDevis = useDevisStore((s) => s.duplicateDevis);
   const deleteDevis = useDevisStore((s) => s.deleteDevis);
   const updateDevisStatut = useDevisStore((s) => s.updateDevisStatut);
+  const applyAfterQuoteEmailSent = useDevisStore((s) => s.applyAfterQuoteEmailSent);
   const [devisToDelete, setDevisToDelete] = useState<string | null>(null);
   const [previewDevisId, setPreviewDevisId] = useState<string | null>(null);
   const peutGenererPDF = usePDFPeutEtreGenere();
@@ -139,32 +140,18 @@ export default function QuotesPage() {
     }
     try {
       const sent = await envoyerDevisParEmail(state);
-
-      let targetId = loadedDevisId;
-      if (targetId) {
-        const existing = savedList.find((d) => d.id === targetId);
-        if (existing) {
-          saveCurrentDevis(existing.nom, targetId);
-        }
-      } else {
-        const nom = `Devis ${state.details.numeroDevis}`;
-        saveCurrentDevis(nom);
-        targetId = useDevisStore.getState().loadedDevisId;
+      const persist = await applyAfterQuoteEmailSent();
+      if (!persist.ok) {
+        toast({
+          title: 'Email envoyé',
+          description: `Le message est bien parti, mais la liste n’a pas été mise à jour : ${persist.error}`,
+          variant: 'destructive',
+        });
+        return;
       }
-
-      let markedAsEnvoyee = false;
-      if (targetId) {
-        const entry = useDevisStore.getState().savedList.find((d) => d.id === targetId);
-        const current = entry?.statut ?? 'brouillon';
-        if (current === 'brouillon' || current === 'envoyee') {
-          updateDevisStatutAndSyncFacture(targetId, 'envoyee', updateDevisStatut);
-          markedAsEnvoyee = true;
-        }
-      }
-
       toast({
         title: 'Email envoyé',
-        description: markedAsEnvoyee
+        description: persist.markedAsEnvoyee
           ? `Message envoyé via Resend (${sent.messageId}). Statut : ${DEVIS_STATUT_LABELS.envoyee} dans la liste des devis.`
           : `Message envoyé via Resend (${sent.messageId}).`,
       });

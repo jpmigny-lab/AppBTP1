@@ -170,6 +170,15 @@ interface DevisStore {
   deleteDevis: (id: string) => void;
   updateDevisStatut: (id: string, statut: DevisStatut) => void;
 
+  /**
+   * Après envoi email réussi : une seule écriture locale + await Supabase
+   * (évite deux upserts concurrents qui peuvent réécraser le statut sur Vercel).
+   */
+  applyAfterQuoteEmailSent: () => Promise<
+    | { ok: true; markedAsEnvoyee: boolean }
+    | { ok: false; error: string }
+  >;
+
   addToCatalogue: (prestation: Omit<PrestationFavorite, 'id'>) => void;
   removeFromCatalogue: (id: string) => void;
   insertFromCatalogue: (
@@ -462,6 +471,74 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
       return { savedList };
     }),
 
+  applyAfterQuoteEmailSent: async () => {
+    const s = get();
+    const now = new Date().toISOString();
+    let targetId = s.loadedDevisId;
+    let savedList: DevisSauvegarde[];
+    let markedAsEnvoyee = false;
+
+    if (!targetId) {
+      const devis: DevisSauvegarde = {
+        id: uuidv4(),
+        nom: `Devis ${s.state.details.numeroDevis}`,
+        state: s.state,
+        createdAt: now,
+        updatedAt: now,
+        statut: 'envoyee',
+      };
+      savedList = [...s.savedList, devis];
+      targetId = devis.id;
+      markedAsEnvoyee = true;
+    } else {
+      const found = s.savedList.find((d) => d.id === targetId);
+      if (!found) {
+        /** Liste désynchronisée (ex. refresh distant) : réinjecter l’entrée courante */
+        const orphan: DevisSauvegarde = {
+          id: targetId,
+          nom: `Devis ${s.state.details.numeroDevis}`,
+          state: s.state,
+          createdAt: now,
+          updatedAt: now,
+          statut: 'envoyee',
+        };
+        savedList = [...s.savedList.filter((d) => d.id !== targetId), orphan];
+        markedAsEnvoyee = true;
+      } else {
+        const current = found.statut ?? 'brouillon';
+        if (current === 'payee' || current === 'en_retard') {
+          const updated: DevisSauvegarde = {
+            ...found,
+            state: s.state,
+            updatedAt: now,
+          };
+          savedList = s.savedList.map((d) => (d.id === targetId ? updated : d));
+        } else {
+          const updated: DevisSauvegarde = {
+            ...found,
+            state: s.state,
+            updatedAt: now,
+            statut: 'envoyee',
+          };
+          savedList = s.savedList.map((d) => (d.id === targetId ? updated : d));
+          markedAsEnvoyee = true;
+        }
+      }
+    }
+
+    localStorage.setItem(LS_SAVED, JSON.stringify(savedList));
+    set({ savedList, loadedDevisId: targetId });
+
+    const res = await saveDevisList(savedList as any[]);
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: res.error ?? 'Échec de la synchronisation (Supabase).',
+      };
+    }
+    return { ok: true, markedAsEnvoyee };
+  },
+
   addToCatalogue: (prestation) =>
     set((s) => {
       const item: PrestationFavorite = { ...prestation, id: uuidv4() };
@@ -514,10 +591,14 @@ export const useDevisStore = create<DevisStore>((set, get) => ({
     }),
 }));
 
-void (async () => {
+/** À appeler une fois la session Supabase connue (voir AuthContext). */
+export async function hydrateDevisListFromSupabase(): Promise<void> {
   const res = await loadDevisList();
-  if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
-    useDevisStore.setState({ savedList: res.data as any });
+  if (!res.ok || !Array.isArray(res.data)) return;
+  useDevisStore.setState({ savedList: res.data as DevisSauvegarde[] });
+  try {
     localStorage.setItem(LS_SAVED, JSON.stringify(res.data));
+  } catch {
+    /* ignore */
   }
-})();
+}
