@@ -40,7 +40,7 @@ const PATH_BY_KEY: Record<PermissionKey, string[]> = {
   quotes: ['/dashboard/quotes'],
   invoices: ['/dashboard/invoices'],
   clients: ['/dashboard/clients'],
-  services: ['/dashboard/estimation-ia', '/dashboard/ai-visualization'],
+  services: [],
   planning: ['/dashboard/planning'],
   projects: ['/dashboard/projects'],
   team: ['/dashboard/team'],

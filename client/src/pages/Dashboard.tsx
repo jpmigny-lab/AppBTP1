@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils'
 import { 
   Building, 
   FileText, 
-  Wand2, 
   Euro,
   Plus
 } from 'lucide-react'
@@ -170,12 +169,12 @@ function OverviewTab() {
           </Button>
           <Button 
             className="w-full justify-start h-auto p-4 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/30 border border-violet-200 dark:border-violet-800"
-            onClick={() => setLocation('/dashboard/ai-visualization')}
+            onClick={() => setLocation('/dashboard/clients')}
           >
-            <Wand2 className="h-5 w-5 mr-3" />
+            <Building className="h-5 w-5 mr-3" />
             <div className="text-left">
-              <div className="font-medium">Estimation IA</div>
-              <div className="text-xs opacity-70">Analyser un projet</div>
+              <div className="font-medium">Voir les Clients</div>
+              <div className="text-xs opacity-70">Gérer le portefeuille</div>
             </div>
           </Button>
         </CardContent>

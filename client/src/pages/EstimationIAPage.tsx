@@ -59,8 +59,14 @@ export default function EstimationIAPage() {
           tva: Number(values.tva), // send as number for prompt
         }),
       })
+      // #region agent log
+      fetch('http://127.0.0.1:7926/ingest/d82336b5-3a0d-4ff4-89d3-4c82cf47cea4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4401c2'},body:JSON.stringify({sessionId:'4401c2',runId:'post-fix',hypothesisId:'H10',location:'EstimationIAPage.tsx:after-fetch',message:'Response received from /api/estimation',data:{ok:resp.ok,status:resp.status,statusText:resp.statusText},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       const json = await resp.json().catch(() => null)
+      // #region agent log
+      fetch('http://127.0.0.1:7926/ingest/d82336b5-3a0d-4ff4-89d3-4c82cf47cea4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4401c2'},body:JSON.stringify({sessionId:'4401c2',runId:'post-fix',hypothesisId:'H10',location:'EstimationIAPage.tsx:after-json',message:'Parsed estimation response body',data:{hasJson:Boolean(json),error:json?.error ?? null,message:json?.message ?? null,keys:json&&typeof json==='object'?Object.keys(json):[]},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (!resp.ok) throw new Error(json?.message || "Erreur estimation IA")
 
       const parsed = EstimationResultSchema.safeParse(json)

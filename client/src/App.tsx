@@ -16,13 +16,9 @@ import InvitePage from "@/pages/InvitePage";
 import TeamDashboard from "@/pages/TeamDashboard";
 import Dashboard from "@/pages/Dashboard";
 import QuotesPage from "@/pages/QuotesPage";
-import AIVisualizationPage from "@/pages/AIVisualizationPage";
 import ProspectsPage from "@/pages/ProspectsPage";
 import ProjectsPage from "@/pages/ProjectsPage";
 import PlanningPage from "@/pages/PlanningPage";
-import EstimationPage from "@/pages/EstimationPage";
-import EstimationIAPage from "@/pages/EstimationIAPage";
-import EstimationHistoryPage from "@/pages/EstimationHistoryPage";
 import ClientsPage from "@/pages/ClientsPage";
 import CRMPipelinePage from "@/pages/CRMPipelinePage";
 import TeamPage from "@/pages/TeamPage";
@@ -81,20 +77,12 @@ function Router() {
         return <TeamDashboard />;
       case "/dashboard":
         return <ProtectedRoute><Dashboard /></ProtectedRoute>;
-      case "/dashboard/estimation":
-        return <ProtectedRoute><EstimationPage /></ProtectedRoute>;
-      case "/dashboard/estimation-ia":
-        return <ProtectedRoute><EstimationIAPage /></ProtectedRoute>;
-      case "/dashboard/estimation/historique":
-        return <ProtectedRoute><EstimationHistoryPage /></ProtectedRoute>;
       case "/dashboard/quotes":
       case "/dashboard/quotes/nouveau":
         return <ProtectedRoute><QuotesPage /></ProtectedRoute>;
       case "/dashboard/invoices":
       case "/dashboard/invoices/nouveau":
         return <ProtectedRoute><InvoicesPage /></ProtectedRoute>;
-      case "/dashboard/ai-visualization":
-        return <ProtectedRoute><AIVisualizationPage /></ProtectedRoute>;
       case "/dashboard/prospects":
         return <ProtectedRoute><ProspectsPage /></ProtectedRoute>;
       case "/dashboard/projects":

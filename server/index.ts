@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -37,6 +38,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7926/ingest/d82336b5-3a0d-4ff4-89d3-4c82cf47cea4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4401c2'},body:JSON.stringify({sessionId:'4401c2',runId:'pre-fix',hypothesisId:'H1',location:'server/index.ts:bootstrap',message:'Server bootstrap env snapshot',data:{hasAnthropicKey:Boolean(process.env.ANTHROPIC_API_KEY),anthropicKeyLength:process.env.ANTHROPIC_API_KEY?.length ?? 0,nodeEnv:process.env.NODE_ENV ?? null,port:process.env.PORT ?? null},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

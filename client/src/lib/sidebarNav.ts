@@ -1,13 +1,11 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Home,
-  Calculator,
   Building,
   Calendar,
   Workflow,
   FileText,
   Receipt,
-  Wand2,
   Users,
   User,
   Settings,
@@ -23,13 +21,11 @@ export type SidebarNavItem = {
 /** Ordre d’affichage du menu latéral (desktop + tiroir mobile). */
 export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
   { icon: Home, label: "Vue d'ensemble", path: '/dashboard' },
-  { icon: Calculator, label: 'Estimation IA', path: '/dashboard/estimation-ia' },
   { icon: Building, label: 'Mes Chantiers', path: '/dashboard/projects' },
   { icon: Calendar, label: 'Planning', path: '/dashboard/planning' },
   { icon: Workflow, label: 'CRM Pipeline', path: '/dashboard/crm' },
   { icon: FileText, label: 'Devis', path: '/dashboard/quotes' },
   { icon: Receipt, label: 'Factures', path: '/dashboard/invoices' },
-  { icon: Wand2, label: 'Visualisation IA', path: '/dashboard/ai-visualization' },
   { icon: Users, label: 'Équipe', path: '/dashboard/team' },
   { icon: User, label: 'Clients', path: '/dashboard/clients' },
   { icon: Mail, label: 'E-mail', path: '/dashboard/mail' },
