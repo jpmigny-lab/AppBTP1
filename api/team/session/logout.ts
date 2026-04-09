@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
 import { revokeTeamSession } from "../../../server/services/teamAuth";
+import { parseJsonBody, teamApiServiceEnvError } from "../_helpers";
 
 const BodySchema = z.object({
   sessionToken: z.string().min(20),
@@ -10,7 +11,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", message: "Méthode non autorisée" });
   }
-  const parsed = BodySchema.safeParse(req.body ?? {});
+  const cfg = teamApiServiceEnvError();
+  if (cfg) {
+    return res.status(503).json({ ok: false, code: "CONFIG_MISSING", message: cfg });
+  }
+  const parsed = BodySchema.safeParse(parseJsonBody(req));
   if (!parsed.success) {
     return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "sessionToken requis." });
   }

@@ -1,9 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { validateTeamSession } from "../../../server/services/teamAuth";
+import { teamApiServiceEnvError } from "../_helpers";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", message: "Méthode non autorisée" });
+  }
+  const cfg = teamApiServiceEnvError();
+  if (cfg) {
+    return res.status(503).json({ ok: false, code: "CONFIG_MISSING", message: cfg });
   }
   const sessionToken = String(req.query?.sessionToken || "");
   if (!sessionToken) {

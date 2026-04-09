@@ -1,10 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { ensureOwnerSlug } from "../../server/services/teamAuth";
-import { getOwnerFromBearer } from "./_helpers";
+import { getOwnerFromBearer, teamApiOwnerSlugEnvError } from "./_helpers";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", message: "Méthode non autorisée" });
+  }
+  const cfg = teamApiOwnerSlugEnvError();
+  if (cfg) {
+    return res.status(503).json({ ok: false, code: "CONFIG_MISSING", message: cfg });
   }
   const owner = await getOwnerFromBearer(req);
   if (!owner) {

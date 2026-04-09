@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
 import { loginTeamMember } from "../../server/services/teamAuth";
+import { parseJsonBody, teamApiCodeEnvError } from "./_helpers";
 
 const BodySchema = z.object({
   ownerSlug: z.string().min(2),
@@ -11,7 +12,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", message: "Méthode non autorisée" });
   }
-  const parsed = BodySchema.safeParse(req.body ?? {});
+  const cfg = teamApiCodeEnvError();
+  if (cfg) {
+    return res.status(503).json({ ok: false, code: "CONFIG_MISSING", message: cfg });
+  }
+  const parsed = BodySchema.safeParse(parseJsonBody(req));
   if (!parsed.success) {
     return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "ownerSlug et code requis." });
   }

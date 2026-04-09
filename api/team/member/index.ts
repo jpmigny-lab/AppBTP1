@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
 import { createTeamMemberSecure, ensureOwnerSlug } from "../../../server/services/teamAuth";
-import { getOwnerFromBearer } from "../_helpers";
+import { getOwnerFromBearer, parseJsonBody, teamApiCreateMemberEnvError } from "../_helpers";
 
 const BodySchema = z.object({
   name: z.string().min(2),
@@ -15,11 +15,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", message: "Méthode non autorisée" });
   }
+  const cfg = teamApiCreateMemberEnvError();
+  if (cfg) {
+    return res.status(503).json({ ok: false, code: "CONFIG_MISSING", message: cfg });
+  }
   const owner = await getOwnerFromBearer(req);
   if (!owner) {
     return res.status(401).json({ ok: false, code: "AUTH_REQUIRED", message: "Authentification requise." });
   }
-  const parsed = BodySchema.safeParse(req.body ?? {});
+  const parsed = BodySchema.safeParse(parseJsonBody(req));
   if (!parsed.success) {
     return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "Données invalides." });
   }

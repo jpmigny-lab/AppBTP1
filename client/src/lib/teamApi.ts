@@ -65,9 +65,19 @@ export async function createTeamMemberViaApi(input: {
       },
       body: JSON.stringify(input),
     });
-    const json = await resp.json().catch(() => null);
+    const raw = await resp.text();
+    let json: { ok?: boolean; code?: string; message?: string; member?: unknown } | null = null;
+    try {
+      json = raw ? (JSON.parse(raw) as typeof json) : null;
+    } catch {
+      json = null;
+    }
     if (!resp.ok || !json?.ok) {
-      return { ok: false, code: json?.code, error: json?.message || "Impossible de créer le membre." };
+      const hint =
+        json?.message ||
+        (raw && !raw.startsWith("{") ? raw.slice(0, 240) : null) ||
+        "Impossible de créer le membre.";
+      return { ok: false, code: json?.code, error: hint };
     }
     return { ok: true, member: json.member };
   } catch (e: any) {
