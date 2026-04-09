@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import crypto from "node:crypto";
+import { createHmac, randomBytes, randomUUID } from "node:crypto";
 
 type TeamMemberPublic = {
   id: string;
@@ -65,7 +65,7 @@ function sanitizeSlug(input: string): string {
 
 function generateOwnerSlug(base: string): string {
   const clean = sanitizeSlug(base) || "owner";
-  const suffix = crypto.randomBytes(2).toString("hex");
+  const suffix = randomBytes(2).toString("hex");
   return `${clean}-${suffix}`;
 }
 
@@ -76,7 +76,7 @@ function validateCode4(rawCode: string): string | null {
 
 function codeIndex(rawCode: string): string {
   const pepper = requireEnv("TEAM_CODE_PEPPER");
-  return crypto.createHmac("sha256", pepper).update(rawCode).digest("hex");
+  return createHmac("sha256", pepper).update(rawCode).digest("hex");
 }
 
 async function hashCode(rawCode: string): Promise<string> {
@@ -221,7 +221,7 @@ export async function loginTeamMember(ownerSlug: string, rawCode: string): Promi
     const bcrypt = await bcryptLib();
     const matches = await bcrypt.compare(code, String((member as any).access_code_hash || ""));
     if (!matches) return { ok: false, code: "INVALID_CODE", error: "Code incorrect." };
-    const sessionToken = crypto.randomUUID();
+    const sessionToken = randomUUID();
     const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
     const { error: sErr } = await sb.from("team_member_sessions").insert({
       team_member_id: (member as any).id,

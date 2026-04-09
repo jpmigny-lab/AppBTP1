@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
-import { createTeamMemberSecure, ensureOwnerSlug } from "../../../lib/teamAuth";
+import { createTeamMemberSecure, ensureOwnerSlug } from "../../_lib/teamAuth";
 import { getOwnerFromBearer, parseJsonBody, teamApiCreateMemberEnvError } from "../_helpers";
 
 const BodySchema = z.object({
@@ -12,6 +12,7 @@ const BodySchema = z.object({
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", message: "Méthode non autorisée" });
   }
@@ -49,4 +50,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(status).json({ ok: false, code: out.code, message: out.error });
   }
   return res.status(200).json({ ok: true, member: out.data });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[api/team/member]", e);
+    return res.status(500).json({ ok: false, code: "INTERNAL", message: msg });
+  }
 }
