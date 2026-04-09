@@ -240,10 +240,11 @@ export function CRMPipeline() {
   }
 
   const normalizedSearch = searchTerm.trim().toLowerCase()
+  const isSearchActive = normalizedSearch.length >= 2
   const filteredColumns = columns.map((column) => ({
     ...column,
     items:
-      normalizedSearch.length === 0
+      !isSearchActive
         ? column.items
         : column.items.filter((prospect) =>
             [
@@ -266,6 +267,7 @@ export function CRMPipeline() {
         <Input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          autoComplete="off"
           placeholder="Rechercher un prospect (nom, email, entreprise...)"
           className="pl-9 pr-9 bg-black/20 backdrop-blur-md border-white/20 text-white placeholder:text-white/60"
         />
