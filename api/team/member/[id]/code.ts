@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
 import { updateTeamMemberCodeSecure } from "../../teamAuth.js";
-import { getOwnerFromBearer, parseJsonBody, teamApiCreateMemberEnvError } from "../../_helpers";
+import { getOwnerFromBearer, parseJsonBody, teamApiCreateMemberEnvError } from "../../_helpers.js";
 
 const BodySchema = z.object({
   code: z.string().regex(/^\d{4}$/),

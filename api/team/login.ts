@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
 import { loginTeamMember } from "./teamAuth.js";
-import { parseJsonBody, teamApiCodeEnvError } from "./_helpers";
+import { parseJsonBody, teamApiCodeEnvError } from "./_helpers.js";
 
 const BodySchema = z.object({
   ownerSlug: z.string().min(2),

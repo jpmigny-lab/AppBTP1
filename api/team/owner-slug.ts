@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { ensureOwnerSlug } from "./teamAuth.js";
-import { getOwnerFromBearer, teamApiOwnerSlugEnvError } from "./_helpers";
+import { getOwnerFromBearer, teamApiOwnerSlugEnvError } from "./_helpers.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {

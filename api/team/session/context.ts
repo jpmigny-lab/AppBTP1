@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getTeamMemberSessionContext } from "../teamAuth.js";
-import { teamApiServiceEnvError } from "../_helpers";
+import { teamApiServiceEnvError } from "../_helpers.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
