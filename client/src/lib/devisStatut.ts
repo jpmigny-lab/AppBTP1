@@ -1,8 +1,9 @@
 import type { DevisStatut } from '@/types/devis';
 import { cn } from '@/lib/utils';
 
-/** États affichés comme sur la maquette (hors brouillon) */
-export const DEVIS_STATUTS_VISIBLES: Exclude<DevisStatut, 'brouillon'>[] = [
+/** États affichés dans les listes Devis / Factures */
+export const DEVIS_STATUTS_VISIBLES: DevisStatut[] = [
+  'brouillon',
   'envoyee',
   'payee',
   'en_retard',
@@ -36,7 +37,9 @@ export const DEVIS_STATUT_ROW_CLASS: Record<DevisStatut, string> = {
 const BADGE_INACTIVE =
   'border border-white/10 bg-white/[0.06] text-white/45';
 
-const BADGE_ACTIVE: Record<Exclude<DevisStatut, 'brouillon'>, string> = {
+const BADGE_ACTIVE: Record<DevisStatut, string> = {
+  // Neutre, sans contour coloré
+  brouillon: 'border-transparent bg-white/[0.16] text-white',
   envoyee: 'border-transparent bg-[#D19A4E] text-white',
   payee: 'border-transparent bg-[#10A35B] text-white',
   en_retard: 'border-transparent bg-[#E13023] text-white',
@@ -44,13 +47,10 @@ const BADGE_ACTIVE: Record<Exclude<DevisStatut, 'brouillon'>, string> = {
 
 export function devisStatutBadgeClass(
   statut: DevisStatut,
-  key: Exclude<DevisStatut, 'brouillon'>,
+  key: DevisStatut,
 ): string {
   const base =
     'rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide transition-colors';
-  if (statut === 'brouillon') {
-    return cn(base, BADGE_INACTIVE);
-  }
   if (statut === key) {
     return cn(base, BADGE_ACTIVE[key]);
   }
