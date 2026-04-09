@@ -344,12 +344,12 @@ export default function QuotesPage() {
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-0.5 justify-end pt-0 border-t border-white/10">
+                          <div className="flex flex-wrap gap-1 justify-end pt-0 border-t border-white/10">
                             {DEVIS_STATUTS_VISIBLES.map((key) => (
                               <button
                                 key={key}
                                 type="button"
-                                className={cn(devisStatutBadgeClass(statut, key), "px-1.5 py-0.5 text-[10px] leading-none")}
+                                className={cn(devisStatutBadgeClass(statut, key), "px-2.5 py-1 text-[12px] leading-none")}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   updateDevisStatutAndSyncFacture(
