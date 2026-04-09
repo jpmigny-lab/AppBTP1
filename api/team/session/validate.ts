@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { validateTeamSession } from "../../_lib/teamAuth";
+import { validateTeamSession } from "../../lib/teamAuth.js";
 import { teamApiServiceEnvError } from "../_helpers";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

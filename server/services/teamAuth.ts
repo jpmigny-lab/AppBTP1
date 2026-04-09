@@ -1,2 +1,2 @@
 /** Réexport : implémentation sous `api/_lib/` pour le bundle Vercel. */
-export * from "../../api/_lib/teamAuth";
+export * from "../../api/lib/teamAuth";
