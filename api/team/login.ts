@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
-import { loginTeamMember } from "../../server/services/teamAuth";
+import { loginTeamMember } from "../../lib/teamAuth";
 import { parseJsonBody, teamApiCodeEnvError } from "./_helpers";
 
 const BodySchema = z.object({

@@ -4,6 +4,11 @@
   "outputDirectory": "dist/public",
   "installCommand": "npm install",
   "framework": null,
+  "functions": {
+    "api/**/*.ts": {
+      "includeFiles": "lib/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
