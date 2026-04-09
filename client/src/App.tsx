@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { GlobalBackground } from "@/components/GlobalBackground";
 import { ChantiersProvider } from "@/context/ChantiersContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { TeamMemberProvider } from "@/context/TeamMemberContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AnimatePresence, motion } from "framer-motion";
 import Home from "@/pages/Home";
@@ -13,6 +14,7 @@ import AuthPage from "@/pages/AuthPage";
 import LoginPage from "@/pages/LoginPage";
 import LoadingRedirectPage from "@/pages/LoadingRedirectPage";
 import InvitePage from "@/pages/InvitePage";
+import TeamLoginPage from "@/pages/TeamLoginPage";
 import TeamDashboard from "@/pages/TeamDashboard";
 import Dashboard from "@/pages/Dashboard";
 import QuotesPage from "@/pages/QuotesPage";
@@ -60,6 +62,9 @@ function Router() {
     if (location.startsWith('/invite/')) {
       return <InvitePage />;
     }
+    if (location.startsWith('/team-login/')) {
+      return <TeamLoginPage />;
+    }
 
     switch (location) {
       case "/":
@@ -102,7 +107,13 @@ function Router() {
   };
 
   // Pages without sidebar (Home, Auth, Login, Loading, Invite) get full page animation
-  const isFullPage = location === "/" || location === "/auth" || location === "/login" || location === "/loading" || location.startsWith("/invite/");
+  const isFullPage =
+    location === "/" ||
+    location === "/auth" ||
+    location === "/login" ||
+    location === "/loading" ||
+    location.startsWith("/invite/") ||
+    location.startsWith("/team-login/");
 
   if (isFullPage) {
     return (
@@ -135,13 +146,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ChantiersProvider>
-          <TooltipProvider>
-            <GlobalBackground />
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </ChantiersProvider>
+        <TeamMemberProvider>
+          <ChantiersProvider>
+            <TooltipProvider>
+              <GlobalBackground />
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </ChantiersProvider>
+        </TeamMemberProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

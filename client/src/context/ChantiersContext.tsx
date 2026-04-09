@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { getChantiers, getClients, saveChantiers, saveClients } from '@/lib/repositories/appDataRepository';
+import { useTeamMemberAuth } from '@/context/TeamMemberContext';
+import { readTeamSession, TEAM_SESSION_EVENT } from '@/lib/teamSession';
 
 const LS_CLIENTS = 'aosrenov:clients';
 const LS_CHANTIERS = 'aosrenov:chantiers';
@@ -119,13 +121,19 @@ interface ChantiersContextType {
 const ChantiersContext = createContext<ChantiersContextType | undefined>(undefined);
 
 export function ChantiersProvider({ children }: { children: ReactNode }) {
-  const [clients, setClients] = useState<Client[]>(() => loadFromStorage(LS_CLIENTS, defaultClients));
+  const { portal, contextLoading, isAuthenticated: isTeamMember } = useTeamMemberAuth();
+  const [clients, setClients] = useState<Client[]>(() => {
+    if (typeof window !== 'undefined' && readTeamSession()?.sessionToken) return [];
+    return loadFromStorage(LS_CLIENTS, defaultClients);
+  });
   const [chantiers, setChantiers] = useState<Chantier[]>(() => {
+    if (typeof window !== 'undefined' && readTeamSession()?.sessionToken) return [];
     const loaded = loadFromStorage<Chantier[]>(LS_CHANTIERS, defaultChantiers);
     return loaded.map(normalizeChantier);
   });
 
   useEffect(() => {
+    if (readTeamSession()?.sessionToken) return;
     void (async () => {
       const [clientsRes, chantiersRes] = await Promise.all([getClients(), getChantiers()]);
       if (clientsRes.ok && clientsRes.data.length > 0) {
@@ -137,6 +145,37 @@ export function ChantiersProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(LS_CHANTIERS, JSON.stringify(chantiersRes.data));
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    if (!readTeamSession()?.sessionToken) return;
+    if (contextLoading) return;
+    if (!isTeamMember || !portal?.chantiers) return;
+    const next = portal.chantiers.map(normalizeChantier);
+    setChantiers(next);
+    try {
+      localStorage.setItem(LS_CHANTIERS, JSON.stringify(next));
+    } catch (_) {}
+  }, [isTeamMember, portal?.chantiers, contextLoading]);
+
+  useEffect(() => {
+    const reloadOwner = () => {
+      if (readTeamSession()?.sessionToken) return;
+      void (async () => {
+        const [clientsRes, chantiersRes] = await Promise.all([getClients(), getChantiers()]);
+        if (clientsRes.ok && clientsRes.data.length > 0) {
+          setClients(clientsRes.data as Client[]);
+          localStorage.setItem(LS_CLIENTS, JSON.stringify(clientsRes.data));
+        }
+        if (chantiersRes.ok && chantiersRes.data.length > 0) {
+          setChantiers((chantiersRes.data as Chantier[]).map(normalizeChantier));
+          localStorage.setItem(LS_CHANTIERS, JSON.stringify(chantiersRes.data));
+        }
+      })();
+    };
+    const onTeamSession = () => reloadOwner();
+    window.addEventListener(TEAM_SESSION_EVENT, onTeamSession);
+    return () => window.removeEventListener(TEAM_SESSION_EVENT, onTeamSession);
   }, []);
 
   const addClient = useCallback((client: Client) => {

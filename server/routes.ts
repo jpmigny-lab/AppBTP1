@@ -4,6 +4,17 @@ import { storage } from "./storage";
 import { EstimationInputSchema } from "../shared/estimationIA";
 import { estimerChantier } from "./services/estimation/claude";
 import { sendQuoteEmailWithResend } from "./services/mail/resend";
+import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
+import {
+  createTeamMemberSecure,
+  ensureOwnerSlug,
+  getTeamMemberSessionContext,
+  loginTeamMember,
+  revokeTeamSession,
+  updateTeamMemberCodeSecure,
+  validateTeamSession,
+} from "./services/teamAuth";
 
 function normalizeEstimationInput(body: any) {
   const rawType = String(body?.typeChantier ?? body?.type_travaux ?? "").toLowerCase();
@@ -88,6 +99,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+
+  const TeamLoginSchema = z.object({
+    ownerSlug: z.string().min(2),
+    code: z.string().regex(/^\d{4}$/),
+  });
+
+  const TeamCreateSchema = z.object({
+    name: z.string().min(2),
+    role: z.string().min(1),
+    email: z.string().email(),
+    phone: z.string().optional().nullable(),
+    code: z.string().regex(/^\d{4}$/),
+  });
+
+  const TeamCodeUpdateSchema = z.object({
+    code: z.string().regex(/^\d{4}$/),
+  });
+
+  const TeamSessionSchema = z.object({
+    sessionToken: z.string().min(20),
+  });
+
+  function getBearerToken(req: any): string | null {
+    const auth = String(req.headers?.authorization || "");
+    if (!auth.startsWith("Bearer ")) return null;
+    return auth.slice(7).trim() || null;
+  }
+
+  async function getOwnerUser(req: any): Promise<{ id: string; email: string } | null> {
+    const token = getBearerToken(req);
+    if (!token) return null;
+    const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+    const anon = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+    if (!url || !anon) return null;
+    const sb = createClient(url, anon, { auth: { persistSession: false } });
+    const { data, error } = await sb.auth.getUser(token);
+    if (error || !data.user?.id) return null;
+    return { id: data.user.id, email: data.user.email || "owner" };
+  }
+
+  app.get("/api/team/owner-slug", async (req, res) => {
+    const owner = await getOwnerUser(req);
+    if (!owner) {
+      return res.status(401).json({ ok: false, code: "AUTH_REQUIRED", message: "Authentification requise." });
+    }
+    const r = await ensureOwnerSlug(owner.id, owner.email);
+    if (!r.ok) {
+      const status = r.code === "CONFIG_MISSING" ? 503 : 500;
+      return res.status(status).json({ ok: false, code: r.code, message: r.error });
+    }
+    return res.status(200).json({ ok: true, ownerSlug: r.data });
+  });
+
+  app.post("/api/team/member", async (req, res) => {
+    const owner = await getOwnerUser(req);
+    if (!owner) {
+      return res.status(401).json({ ok: false, code: "AUTH_REQUIRED", message: "Authentification requise." });
+    }
+    const parsed = TeamCreateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "Données invalides." });
+    }
+    const slug = await ensureOwnerSlug(owner.id, owner.email);
+    if (!slug.ok) {
+      const status = slug.code === "CONFIG_MISSING" ? 503 : 500;
+      return res.status(status).json({ ok: false, code: slug.code, message: slug.error });
+    }
+    const out = await createTeamMemberSecure({
+      ownerUserId: owner.id,
+      ownerSlug: slug.data,
+      name: parsed.data.name,
+      role: parsed.data.role,
+      email: parsed.data.email,
+      phone: parsed.data.phone ?? null,
+      rawCode: parsed.data.code,
+    });
+    if (!out.ok) {
+      const status =
+        out.code === "INVALID_INPUT" ? 400 :
+        out.code === "DUPLICATE_CODE" ? 409 :
+        out.code === "CONFIG_MISSING" ? 503 : 500;
+      return res.status(status).json({ ok: false, code: out.code, message: out.error });
+    }
+    return res.status(200).json({ ok: true, member: out.data });
+  });
+
+  app.put("/api/team/member/:id/code", async (req, res) => {
+    const owner = await getOwnerUser(req);
+    if (!owner) {
+      return res.status(401).json({ ok: false, code: "AUTH_REQUIRED", message: "Authentification requise." });
+    }
+    const parsed = TeamCodeUpdateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "Code invalide." });
+    }
+    const out = await updateTeamMemberCodeSecure({
+      ownerUserId: owner.id,
+      memberId: String(req.params.id || ""),
+      rawCode: parsed.data.code,
+    });
+    if (!out.ok) {
+      const status =
+        out.code === "INVALID_INPUT" ? 400 :
+        out.code === "DUPLICATE_CODE" ? 409 :
+        out.code === "CONFIG_MISSING" ? 503 : 500;
+      return res.status(status).json({ ok: false, code: out.code, message: out.error });
+    }
+    return res.status(200).json({ ok: true });
+  });
+
+  app.post("/api/team/login", async (req, res) => {
+    const parsed = TeamLoginSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "ownerSlug et code requis." });
+    }
+    const out = await loginTeamMember(parsed.data.ownerSlug, parsed.data.code);
+    if (!out.ok) {
+      const status =
+        out.code === "INVALID_INPUT" ? 400 :
+        out.code === "INVALID_CODE" ? 401 :
+        out.code === "CONFIG_MISSING" ? 503 : 500;
+      return res.status(status).json({ ok: false, code: out.code, message: out.error });
+    }
+    return res.status(200).json({ ok: true, member: out.data.member, sessionToken: out.data.sessionToken, expiresAt: out.data.expiresAt });
+  });
+
+  app.get("/api/team/session/context", async (req, res) => {
+    const sessionToken = String(req.query?.sessionToken || "");
+    if (!sessionToken) {
+      return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "sessionToken requis." });
+    }
+    const out = await getTeamMemberSessionContext(sessionToken);
+    if (!out.ok) {
+      const status =
+        out.code === "INVALID_SESSION" || out.code === "EXPIRED" ? 401 :
+        out.code === "CONFIG_MISSING" ? 503 : 500;
+      return res.status(status).json({ ok: false, code: out.code, message: out.error });
+    }
+    return res.status(200).json({
+      ok: true,
+      member: out.data.member,
+      expiresAt: out.data.expiresAt,
+      permissions: out.data.permissions,
+      assignedChantierIds: out.data.assignedChantierIds,
+      chantiers: out.data.chantiers,
+    });
+  });
+
+  app.get("/api/team/session/validate", async (req, res) => {
+    const sessionToken = String(req.query?.sessionToken || "");
+    if (!sessionToken) {
+      return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "sessionToken requis." });
+    }
+    const out = await validateTeamSession(sessionToken);
+    if (!out.ok) {
+      const status =
+        out.code === "INVALID_SESSION" || out.code === "EXPIRED" ? 401 :
+        out.code === "CONFIG_MISSING" ? 503 : 500;
+      return res.status(status).json({ ok: false, code: out.code, message: out.error });
+    }
+    return res.status(200).json({ ok: true, member: out.data.member, expiresAt: out.data.expiresAt });
+  });
+
+  app.post("/api/team/session/logout", async (req, res) => {
+    const parsed = TeamSessionSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, code: "INVALID_INPUT", message: "sessionToken requis." });
+    }
+    const out = await revokeTeamSession(parsed.data.sessionToken);
+    if (!out.ok) {
+      const status = out.code === "CONFIG_MISSING" ? 503 : 500;
+      return res.status(status).json({ ok: false, code: out.code, message: out.error });
+    }
+    return res.status(200).json({ ok: true });
+  });
 
   app.post("/api/estimation", async (req, res) => {
     // #region agent log

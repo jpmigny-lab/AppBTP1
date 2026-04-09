@@ -9,23 +9,32 @@ import { GlobalBackground } from '@/components/GlobalBackground';
 import { Building, Calendar, Clock, ShieldAlert } from 'lucide-react';
 import { useChantiers } from '@/context/ChantiersContext';
 import { useTeamPortalAccess } from '@/hooks/useTeamPortalAccess';
+import { useTeamMemberAuth } from '@/context/TeamMemberContext';
 import { canViewTeamArea, pathForTeamArea, teamAreaFromPath, type TeamPortalArea } from '@/lib/teamPortalAccess';
 import { isChantierVisibleToTeamMember } from '@/lib/chantierAssignments';
+import { readTeamSession } from '@/lib/teamSession';
 
 export default function TeamDashboard() {
   const [location, setLocation] = useLocation();
   const { chantiers } = useChantiers();
-  const { member, permissions, firstPath, canView, canEdit } = useTeamPortalAccess();
+  const { isAuthenticated, ownerSlug, loading: teamLoading, contextLoading } = useTeamMemberAuth();
+  const { member, permissions, firstPath, canView, canEdit, isTeamPortal } = useTeamPortalAccess();
 
   const area = teamAreaFromPath(location);
 
   useEffect(() => {
-    const storedMember = localStorage.getItem('teamMember');
-    const userType = localStorage.getItem('userType');
-    if (!storedMember || userType !== 'team') {
-      setLocation('/');
+    if (teamLoading || contextLoading) return;
+    if (isAuthenticated) return;
+
+    const stored = readTeamSession();
+    if (stored?.sessionToken) {
+      // Évite une course : writeTeamSession + setState pas encore reflétés dans le contexte
+      return;
     }
-  }, [setLocation]);
+
+    const slug = ownerSlug || stored?.member?.owner_slug || '';
+    setLocation(slug ? `/team-login/${encodeURIComponent(slug)}` : '/login');
+  }, [isAuthenticated, ownerSlug, setLocation, teamLoading, contextLoading]);
 
   useEffect(() => {
     if (!member || firstPath === null) return;
@@ -34,10 +43,10 @@ export default function TeamDashboard() {
     }
   }, [member, permissions, location, firstPath, setLocation]);
 
-  const chantiersPourMoi = useMemo(
-    () => chantiers.filter((c) => isChantierVisibleToTeamMember(c, member?.id)),
-    [chantiers, member?.id],
-  );
+  const chantiersPourMoi = useMemo(() => {
+    if (isTeamPortal) return chantiers;
+    return chantiers.filter((c) => isChantierVisibleToTeamMember(c, member?.id));
+  }, [chantiers, member?.id, isTeamPortal]);
 
   const myChantiers = chantiersPourMoi.filter((c) => c.statut !== 'terminé');
   const chantiersEnCours = chantiersPourMoi.filter((c) => c.statut === 'en cours');

@@ -17,8 +17,6 @@ const LS_CHANTIERS = 'aosrenov:chantiers';
 const LS_SAVED_DEVIS = 'devis:saved';
 const LS_SAVED_FACTURES = 'facture:saved';
 const LS_SIDEBAR_PREFS = 'aosrenov.settings.sidebar.prefs.v1';
-const LS_TEAM_MEMBER_PERMISSIONS = 'aosrenov.team.memberPermissions.v1';
-
 function parseJson<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback;
   try {
@@ -37,8 +35,6 @@ export async function runFirstLoginMigration(): Promise<void> {
   const localDevis = parseJson<any[]>(localStorage.getItem(LS_SAVED_DEVIS), []);
   const localFactures = parseJson<any[]>(localStorage.getItem(LS_SAVED_FACTURES), []);
   const sidebarPrefs = parseJson<any>(localStorage.getItem(LS_SIDEBAR_PREFS), null);
-  const memberPerms = parseJson<any>(localStorage.getItem(LS_TEAM_MEMBER_PERMISSIONS), null);
-
   const remoteClients = await getClients();
   if (remoteClients.ok && remoteClients.data.length === 0 && localClients.length > 0) {
     await saveClients(localClients);
@@ -73,15 +69,6 @@ export async function runFirstLoginMigration(): Promise<void> {
     const remoteSidebar = await getSetting<any>('sidebar_prefs');
     if (remoteSidebar.ok && remoteSidebar.data) {
       localStorage.setItem(LS_SIDEBAR_PREFS, JSON.stringify(remoteSidebar.data));
-    }
-  }
-
-  if (memberPerms) {
-    await saveSetting('team_member_permissions', memberPerms);
-  } else {
-    const remotePerms = await getSetting<any>('team_member_permissions');
-    if (remotePerms.ok && remotePerms.data) {
-      localStorage.setItem(LS_TEAM_MEMBER_PERMISSIONS, JSON.stringify(remotePerms.data));
     }
   }
 

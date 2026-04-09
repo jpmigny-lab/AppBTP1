@@ -67,9 +67,11 @@ export interface TeamMember {
   role: string;
   email: string;
   phone: string | null;
-  status: 'actif' | 'inactif';
-  login_code: string;
-  user_id: string | null;
+  status: 'active' | 'inactive' | 'actif' | 'inactif';
+  owner_user_id?: string | null;
+  owner_slug?: string | null;
+  login_code?: string;
+  user_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,8 +84,7 @@ export async function fetchTeamMembers(): Promise<TeamMember[]> {
     const { data, error } = await supabase
       .from('team_members')
       .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'actif')
+      .eq('owner_user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -248,20 +249,18 @@ export async function loadJsonSetting<T>(key: string): Promise<RepoResult<T | nu
   }
 }
 
-export async function createTeamMember(member: Omit<TeamMember, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<TeamMember | null> {
+export async function createTeamMember(
+  member: Omit<TeamMember, 'id' | 'created_at' | 'updated_at' | 'owner_user_id' | 'owner_slug'>,
+): Promise<TeamMember | null> {
   try {
     const userId = await getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
-    // Generate a random 6-digit code if not provided
-    const loginCode = member.login_code || Math.floor(100000 + Math.random() * 900000).toString();
-    
     const { data, error } = await supabase
       .from('team_members')
       .insert({
         ...member,
-        login_code: loginCode,
-        user_id: userId,
+        owner_user_id: userId,
       })
       .select()
       .single();
@@ -286,7 +285,7 @@ export async function updateTeamMember(id: string, updates: Partial<TeamMember>)
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('owner_user_id', userId)
       .select()
       .single();
 
@@ -307,7 +306,7 @@ export async function deleteTeamMember(id: string): Promise<boolean> {
       .from('team_members')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId);
+      .eq('owner_user_id', userId);
 
     return !error;
   } catch (error) {

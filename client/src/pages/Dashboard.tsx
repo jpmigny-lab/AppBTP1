@@ -16,6 +16,7 @@ import { Link, useLocation } from 'wouter'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useChantiers } from '@/context/ChantiersContext'
 import { useDevisStore } from '@/store/devisStore'
+import { readTeamSession } from '@/lib/teamSession'
 
 const chartData = [
   { name: 'Jan', revenus: 120000, depenses: 80000 },
@@ -30,8 +31,7 @@ export default function Dashboard() {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
-    const userType = localStorage.getItem('userType')
-    if (userType === 'team') {
+    if (readTeamSession()?.sessionToken) {
       setLocation('/team-dashboard')
     }
   }, [setLocation])

@@ -1,26 +1,17 @@
 import { MeshGradient } from "@paper-design/shaders-react"
 import { useEffect, useState } from "react"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useLocation } from "wouter"
-import { getInvitationByToken, markInvitationAsUsed, verifyTeamMemberCode, type TeamInvitation } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { XCircle, Loader2, Key } from "lucide-react"
+import { Info } from "lucide-react"
 
+/**
+ * Anciennes URLs /invite/:token — remplacées par /team-login/:ownerSlug + code 4 chiffres.
+ */
 export default function InvitePage() {
-  const [location] = useLocation()
-  // Extraire le token de l'URL
-  const token = location.startsWith('/invite/') ? location.split('/invite/')[1] : ""
   const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 })
   const [mounted, setMounted] = useState(false)
-  const [invitation, setInvitation] = useState<TeamInvitation | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [code, setCode] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [verifying, setVerifying] = useState(false)
   const [, setLocation] = useLocation()
-
-  const colors = ["#72b9bb", "#b5d9d9", "#ffd1bd", "#ffebe0", "#8cc5b8", "#dbf4a4"]
 
   useEffect(() => {
     setMounted(true)
@@ -34,67 +25,7 @@ export default function InvitePage() {
     return () => window.removeEventListener("resize", update)
   }, [])
 
-  useEffect(() => {
-    if (token) {
-      loadInvitation()
-    }
-  }, [token])
-
-  const loadInvitation = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const inv = await getInvitationByToken(token)
-      setInvitation(inv)
-      if (!inv) {
-        setError("Cette invitation n'existe pas, a expiré ou a déjà été utilisée.")
-      }
-    } catch (err) {
-      setError("Erreur lors du chargement de l'invitation.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-
-    if (!code.trim()) {
-      setError("Veuillez entrer votre code de connexion")
-      return
-    }
-
-    if (!invitation) {
-      setError("Invitation invalide")
-      return
-    }
-
-    setVerifying(true)
-
-    try {
-      // Vérifier le code avec le token d'invitation
-      const member = await verifyTeamMemberCode(code.trim(), token)
-
-      if (member) {
-        // Stocker les infos du membre dans le localStorage
-        localStorage.setItem('teamMember', JSON.stringify(member))
-        localStorage.setItem('userType', 'team')
-
-        // Marquer l'invitation comme utilisée
-        await markInvitationAsUsed(token)
-
-        // Rediriger vers le dashboard membre
-        setLocation("/team-dashboard")
-      } else {
-        setError("Code de connexion incorrect")
-      }
-    } catch (err: any) {
-      setError(err.message || "Une erreur est survenue")
-    } finally {
-      setVerifying(false)
-    }
-  }
+  const colors = ["#72b9bb", "#b5d9d9", "#ffd1bd", "#ffebe0", "#8cc5b8", "#dbf4a4"]
 
   if (!mounted) return null
 
@@ -117,73 +48,28 @@ export default function InvitePage() {
 
       <div className="relative z-10 max-w-md mx-auto px-6 w-full">
         <Card className="bg-white/10 dark:bg-black/20 backdrop-blur-lg rounded-2xl border border-white/20 p-8 shadow-2xl">
-          {loading ? (
-            <div className="text-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-white mx-auto mb-4" />
-              <p className="text-white">Chargement de l'invitation...</p>
-            </div>
-          ) : !invitation ? (
-            <div className="text-center py-8">
-              <XCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-              <CardTitle className="text-white mb-2">Invitation invalide</CardTitle>
-              <p className="text-white/70 text-sm">
-                {error || "Cette invitation n'existe pas, a expiré ou a déjà été utilisée."}
-              </p>
-            </div>
-          ) : (
-            <>
-              <CardHeader className="text-center mb-6">
-                <CardTitle className="text-2xl font-bold text-white mb-2">
-                  Rejoindre l'équipe
-                </CardTitle>
-                <p className="text-white/80 text-sm">
-                  Entrez votre code de connexion pour accéder à votre dashboard
-                </p>
-              </CardHeader>
-
-              {error && (
-                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
-                    <Input
-                      type="text"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      placeholder="Entrez votre code de connexion"
-                      className="w-full bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40 focus:ring-white/20 h-12 pl-10 text-center text-lg tracking-widest font-mono"
-                      maxLength={10}
-                      required
-                      disabled={verifying}
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={verifying}
-                  className="w-full bg-[rgba(63,63,63,1)] border-4 border-card text-white hover:bg-[rgba(63,63,63,0.9)] transition-colors h-12 text-base font-semibold disabled:opacity-50"
-                >
-                  {verifying ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Vérification...
-                    </>
-                  ) : (
-                    "Se connecter"
-                  )}
-                </Button>
-              </form>
-            </>
-          )}
+          <CardHeader className="text-center mb-2">
+            <Info className="h-10 w-10 text-amber-300 mx-auto mb-3" />
+            <CardTitle className="text-2xl font-bold text-white mb-2">
+              Lien d&apos;invitation obsolète
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-center">
+            <p className="text-white/80 text-sm leading-relaxed">
+              La connexion des membres d&apos;équipe se fait désormais avec le lien personnel du patron, du type{" "}
+              <span className="font-mono text-violet-200">/team-login/votre-patron</span>, et un code à 4 chiffres.
+              Demandez ce lien à votre responsable.
+            </p>
+            <Button
+              type="button"
+              className="w-full bg-violet-600 hover:bg-violet-500 text-white"
+              onClick={() => setLocation("/")}
+            >
+              Retour à l&apos;accueil
+            </Button>
+          </CardContent>
         </Card>
       </div>
     </section>
   )
 }
-

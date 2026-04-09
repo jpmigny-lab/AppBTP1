@@ -1,11 +1,8 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import type { TeamMember } from '@/lib/supabase';
-import {
-  createFullAccessPermissions,
-  getMemberPermissions,
-  TEAM_MEMBER_PERMISSIONS_EVENT,
-  type StoredMemberPermissions,
-} from '@/lib/teamMemberPermissions';
+import { createNoAccessPermissions, type StoredMemberPermissions } from '@/lib/teamMemberPermissions';
+import { TEAM_SESSION_EVENT, readTeamSession } from '@/lib/teamSession';
+import { useTeamMemberAuth } from '@/context/TeamMemberContext';
 import {
   canEditTeamArea,
   canViewTeamArea,
@@ -14,44 +11,27 @@ import {
 } from '@/lib/teamPortalAccess';
 
 export function useTeamPortalAccess() {
-  const [member, setMember] = useState<TeamMember | null>(null);
-  const [permissions, setPermissions] = useState<StoredMemberPermissions>(() =>
-    createFullAccessPermissions(),
-  );
+  const { member: ctxMember, portal, isTeamPortal, refetchPortal, contextLoading } = useTeamMemberAuth();
+
+  const member = ctxMember as TeamMember | null;
+  const permissions: StoredMemberPermissions = portal?.permissions ?? createNoAccessPermissions();
+  const assignedChantierIds = portal?.assignedChantierIds ?? [];
 
   useEffect(() => {
-    const sync = () => {
-      const raw = localStorage.getItem('teamMember');
-      const ut = localStorage.getItem('userType');
-      if (!raw || ut !== 'team') {
-        setMember(null);
-        return;
-      }
-      try {
-        const m = JSON.parse(raw) as TeamMember;
-        setMember(m);
-        setPermissions(getMemberPermissions(m.id));
-      } catch {
-        setMember(null);
-      }
+    const onFocus = () => {
+      if (readTeamSession()?.sessionToken) void refetchPortal();
     };
-    sync();
-    const onStorage = (e: StorageEvent) => {
-      if (
-        e.key === 'teamMember' ||
-        e.key === 'aosrenov.team.memberPermissions.v1' ||
-        e.key === null
-      ) {
-        sync();
-      }
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [refetchPortal]);
+
+  useEffect(() => {
+    const onSession = () => {
+      if (readTeamSession()?.sessionToken) void refetchPortal();
     };
-    window.addEventListener('storage', onStorage);
-    window.addEventListener(TEAM_MEMBER_PERMISSIONS_EVENT, sync);
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener(TEAM_MEMBER_PERMISSIONS_EVENT, sync);
-    };
-  }, []);
+    window.addEventListener(TEAM_SESSION_EVENT, onSession);
+    return () => window.removeEventListener(TEAM_SESSION_EVENT, onSession);
+  }, [refetchPortal]);
 
   const firstPath = useMemo(() => firstAccessibleTeamPath(permissions), [permissions]);
 
@@ -65,5 +45,15 @@ export function useTeamPortalAccess() {
     [permissions],
   );
 
-  return { member, permissions, firstPath, canView, canEdit };
+  return {
+    member,
+    permissions,
+    assignedChantierIds,
+    isTeamPortal,
+    contextLoading,
+    firstPath,
+    canView,
+    canEdit,
+    refetchPortal,
+  };
 }

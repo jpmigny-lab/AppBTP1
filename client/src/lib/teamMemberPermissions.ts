@@ -1,5 +1,4 @@
 import { getSidebarPrefs } from '@/lib/sidebarPrefs';
-import { saveSetting } from '@/lib/repositories/appDataRepository';
 
 export const PERMISSION_KEYS = [
   'quotes',
@@ -72,6 +71,31 @@ export function createReadOnlyPermissions(): StoredMemberPermissions {
   };
 }
 
+export function createNoAccessPermissions(): StoredMemberPermissions {
+  return {
+    view: allFalse(),
+    edit: allFalse(),
+    layoutPreset: 'none',
+  };
+}
+
+/** Construit l’objet UI à partir des lignes Supabase `team_member_permissions`. */
+export function storedPermissionsFromPermissionRows(
+  rows: { feature_key: string; can_view: boolean; can_edit: boolean }[],
+): StoredMemberPermissions {
+  if (!rows.length) return createNoAccessPermissions();
+  const view = allFalse();
+  const edit = allFalse();
+  for (const r of rows) {
+    const k = r.feature_key as PermissionKey;
+    if (PERMISSION_KEYS.includes(k)) {
+      view[k] = Boolean(r.can_view);
+      edit[k] = Boolean(r.can_edit);
+    }
+  }
+  return { view, edit, layoutPreset: 'none' };
+}
+
 /** Applique la visibilité de la barre latérale (Paramètres) sur la colonne « Voir » uniquement. */
 export function applySidebarVisibilityToView(prev: StoredMemberPermissions): StoredMemberPermissions {
   const { hiddenPaths } = getSidebarPrefs();
@@ -132,33 +156,8 @@ export function permissionsMatchReadOnly(p: StoredMemberPermissions): boolean {
   return PERMISSION_KEYS.every((k) => p.view[k] && !p.edit[k]);
 }
 
-const STORAGE_KEY = 'aosrenov.team.memberPermissions.v1';
-
-/** Réagir dans l’espace collaborateur si les droits sont modifiés (même onglet). */
+/** Réagir dans l’espace collaborateur (rafraîchissement manuel / focus). */
 export const TEAM_MEMBER_PERMISSIONS_EVENT = 'aosrenov:team-member-permissions';
-
-function loadMap(): Record<string, StoredMemberPermissions> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (!parsed || typeof parsed !== 'object') return {};
-    const out: Record<string, StoredMemberPermissions> = {};
-    for (const [id, val] of Object.entries(parsed)) {
-      if (!val || typeof val !== 'object') continue;
-      const o = val as Record<string, unknown>;
-      if (!o.view || !o.edit) continue;
-      out[id] = normalizeStored({
-        view: o.view as Record<string, boolean>,
-        edit: o.edit as Record<string, boolean>,
-        layoutPreset: (o.layoutPreset as LayoutPreset) || 'none',
-      });
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
 
 function normalizeStored(p: Partial<StoredMemberPermissions>): StoredMemberPermissions {
   const view = allFalse();
@@ -173,26 +172,15 @@ function normalizeStored(p: Partial<StoredMemberPermissions>): StoredMemberPermi
   return { view, edit, layoutPreset: lp };
 }
 
-function saveMap(map: Record<string, StoredMemberPermissions>) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-  void saveSetting('team_member_permissions', map);
+/** @deprecated Les droits viennent de `team_member_permissions` (Supabase) ou du contexte API membre. */
+export function getMemberPermissions(_memberId: string): StoredMemberPermissions {
+  return createNoAccessPermissions();
 }
 
-export function getMemberPermissions(memberId: string): StoredMemberPermissions {
-  const map = loadMap();
-  return map[memberId] ? normalizeStored(map[memberId]) : createFullAccessPermissions();
-}
-
-export function setMemberPermissions(memberId: string, permissions: StoredMemberPermissions) {
-  const map = loadMap();
-  map[memberId] = normalizeStored(permissions);
-  saveMap(map);
+export function setMemberPermissions(_memberId: string, _permissions: StoredMemberPermissions) {
   window.dispatchEvent(new Event(TEAM_MEMBER_PERMISSIONS_EVENT));
 }
 
-export function removeMemberPermissions(memberId: string) {
-  const map = loadMap();
-  delete map[memberId];
-  saveMap(map);
+export function removeMemberPermissions(_memberId: string) {
   window.dispatchEvent(new Event(TEAM_MEMBER_PERMISSIONS_EVENT));
 }

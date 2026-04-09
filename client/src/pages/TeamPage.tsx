@@ -8,18 +8,32 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Plus, User, Mail, Phone, Trash2, Building, Key, Edit2, Copy } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { fetchTeamMembers, createTeamMember, updateTeamMember, deleteTeamMember, type TeamMember } from '@/lib/supabase';
-import { DEMO_TEAM_MEMBERS, isDemoTeamMemberId } from '@/data/demoTeam';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useChantiers } from '@/context/ChantiersContext';
+import { fetchTeamMembers, updateTeamMember, deleteTeamMember, type TeamMember } from '@/lib/supabase';
 import { EmployeePermissionsSection } from '@/components/team/EmployeePermissionsSection';
 import {
+  fetchTeamMemberChantierIds,
+  fetchTeamMemberPermissionRows,
+  replaceTeamMemberChantiers,
+  replaceTeamMemberPermissions,
+} from '@/lib/repositories/teamMemberRepository';
+import { useToast } from '@/hooks/use-toast';
+import {
+  createTeamMemberViaApi,
+  fetchOwnerSlug,
+  updateMemberCodeViaApi,
+} from '@/lib/teamApi';
+import {
   createFullAccessPermissions,
-  getMemberPermissions,
   removeMemberPermissions,
-  setMemberPermissions,
+  storedPermissionsFromPermissionRows,
   type StoredMemberPermissions,
 } from '@/lib/teamMemberPermissions';
 
 export default function TeamPage() {
+  const { toast } = useToast();
+  const { chantiers } = useChantiers();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -47,10 +61,10 @@ export default function TeamPage() {
     setLoading(true);
     try {
       const data = await fetchTeamMembers();
-      setMembers(data.length > 0 ? data : DEMO_TEAM_MEMBERS);
+      setMembers(data);
     } catch (error) {
       console.error('Error loading members:', error);
-      setMembers(DEMO_TEAM_MEMBERS);
+      setMembers([]);
     } finally {
       setLoading(false);
     }
@@ -58,83 +72,152 @@ export default function TeamPage() {
 
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [createdCode, setCreatedCode] = useState("");
+  const [editableCode, setEditableCode] = useState("");
+  const [createdMemberId, setCreatedMemberId] = useState<string | null>(null);
+  const [newAssignedChantierIds, setNewAssignedChantierIds] = useState<string[]>([]);
+  const [editAssignedChantierIds, setEditAssignedChantierIds] = useState<string[]>([]);
+  const [editDialogLoading, setEditDialogLoading] = useState(false);
 
   const handleAddMember = async () => {
     if (!newMember.name || !newMember.role || !newMember.email || !newMember.login_code) {
-      alert("Veuillez remplir tous les champs, y compris le code de connexion");
+      toast({
+        title: "Champs manquants",
+        description: "Veuillez remplir tous les champs, y compris le code de connexion.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!/^\d{4}$/.test(newMember.login_code.trim())) {
+      toast({
+        title: "Code invalide",
+        description: "Le code membre doit contenir exactement 4 chiffres.",
+        variant: "destructive",
+      });
       return;
     }
 
-    const result = await createTeamMember({
+    const result = await createTeamMemberViaApi({
       name: newMember.name,
       role: newMember.role,
       email: newMember.email,
-      phone: newMember.phone || null,
-      status: 'actif',
-      login_code: newMember.login_code,
+      phone: newMember.phone || undefined,
+      code: newMember.login_code.trim(),
     });
 
-    if (result) {
-      setMemberPermissions(result.id, newPermissions);
-      const { createTeamInvitation } = await import('@/lib/supabase');
-      const { inviteLink } = await createTeamInvitation(result.id, result.email);
-
-      if (inviteLink) {
-        setInviteLink(inviteLink);
-        setShowInviteModal(true);
-      }
-
-      await loadMembers();
-      setNewMember({ name: '', role: '', email: '', phone: '', login_code: '' });
-      setNewPermissions(createFullAccessPermissions());
-      setIsDialogOpen(false);
+    if (!result.ok) {
+      toast({
+        title: result.code === "DUPLICATE_CODE" ? "Code déjà utilisé" : "Création impossible",
+        description: result.error,
+        variant: "destructive",
+      });
+      return;
     }
+
+    const permSave = await replaceTeamMemberPermissions(result.member.id, newPermissions);
+    if (!permSave.ok) {
+      toast({
+        title: "Membre créé",
+        description: `Droits non enregistrés : ${permSave.error}`,
+        variant: "destructive",
+      });
+    }
+    const chSave = await replaceTeamMemberChantiers(result.member.id, newAssignedChantierIds);
+    if (!chSave.ok) {
+      toast({
+        title: "Membre créé",
+        description: `Affectations chantiers non enregistrées : ${chSave.error}`,
+        variant: "destructive",
+      });
+    }
+    const slug = await fetchOwnerSlug();
+    if (slug.ok) {
+      setInviteLink(`${window.location.origin}/team-login/${slug.ownerSlug}`);
+      setShowInviteModal(true);
+    } else {
+      toast({
+        title: "Membre ajouté",
+        description: "Le membre est créé mais le lien de connexion n'a pas pu être récupéré.",
+      });
+    }
+    setCreatedCode(newMember.login_code.trim());
+    setEditableCode(newMember.login_code.trim());
+    setCreatedMemberId(result.member.id);
+    await loadMembers();
+    setNewMember({ name: '', role: '', email: '', phone: '', login_code: '' });
+    setNewPermissions(createFullAccessPermissions());
+    setNewAssignedChantierIds([]);
+    setIsDialogOpen(false);
   };
 
-  const handleEditMember = (member: TeamMember) => {
+  const handleEditMember = async (member: TeamMember) => {
     setEditingMember(member);
-    setEditPermissions(getMemberPermissions(member.id));
     setIsEditDialogOpen(true);
+    setEditDialogLoading(true);
+    const [pr, cr] = await Promise.all([
+      fetchTeamMemberPermissionRows(member.id),
+      fetchTeamMemberChantierIds(member.id),
+    ]);
+    if (pr.ok && pr.rows.length > 0) {
+      setEditPermissions(storedPermissionsFromPermissionRows(pr.rows));
+    } else {
+      setEditPermissions(createFullAccessPermissions());
+    }
+    if (cr.ok) setEditAssignedChantierIds(cr.ids);
+    else setEditAssignedChantierIds([]);
+    if (!pr.ok) {
+      toast({ title: "Lecture des droits", description: pr.error, variant: "destructive" });
+    }
+    if (!cr.ok) {
+      toast({ title: "Lecture des chantiers", description: cr.error, variant: "destructive" });
+    }
+    setEditDialogLoading(false);
   };
 
   const handleUpdateMember = async () => {
     if (!editingMember) return;
-
-    if (isDemoTeamMemberId(editingMember.id)) {
-      setMemberPermissions(editingMember.id, editPermissions);
-      setMembers((prev) =>
-        prev.map((m) => (m.id === editingMember.id ? { ...editingMember } : m)),
-      );
-      setEditingMember(null);
-      setIsEditDialogOpen(false);
-      return;
-    }
 
     const result = await updateTeamMember(editingMember.id, {
       name: editingMember.name,
       role: editingMember.role,
       email: editingMember.email,
       phone: editingMember.phone,
-      status: editingMember.status,
-      login_code: editingMember.login_code,
+      status:
+        editingMember.status === 'actif'
+          ? 'active'
+          : editingMember.status === 'inactif'
+            ? 'inactive'
+            : editingMember.status,
     });
 
-    if (result) {
-      setMemberPermissions(editingMember.id, editPermissions);
-      await loadMembers();
-      setEditingMember(null);
-      setIsEditDialogOpen(false);
+    if (!result) {
+      toast({
+        title: "Mise à jour impossible",
+        description: "Le profil du membre n'a pas pu être enregistré.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    const permSave = await replaceTeamMemberPermissions(editingMember.id, editPermissions);
+    const chSave = await replaceTeamMemberChantiers(editingMember.id, editAssignedChantierIds);
+    if (!permSave.ok) {
+      toast({ title: "Droits non sauvegardés", description: permSave.error, variant: "destructive" });
+    }
+    if (!chSave.ok) {
+      toast({ title: "Chantiers non sauvegardés", description: chSave.error, variant: "destructive" });
+    }
+    if (permSave.ok && chSave.ok) {
+      toast({ title: "Enregistré", description: "Droits et chantiers mis à jour." });
+    }
+    removeMemberPermissions(editingMember.id);
+    await loadMembers();
+    setEditingMember(null);
+    setIsEditDialogOpen(false);
   };
 
   const handleDeleteMember = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) return;
-
-    if (isDemoTeamMemberId(id)) {
-      removeMemberPermissions(id);
-      setMembers((prev) => prev.filter((m) => m.id !== id));
-      return;
-    }
 
     const success = await deleteTeamMember(id);
     if (success) {
@@ -160,6 +243,7 @@ export default function TeamPage() {
               if (!open) {
                 setNewMember({ name: '', role: '', email: '', phone: '', login_code: '' });
                 setNewPermissions(createFullAccessPermissions());
+                setNewAssignedChantierIds([]);
               }
             }}
           >
@@ -244,6 +328,38 @@ export default function TeamPage() {
                   idPrefix="new"
                 />
 
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
+                  <div>
+                    <Label className="text-white/90">Chantiers visibles pour ce membre</Label>
+                    <p className="text-xs text-white/55 mt-1">
+                      Aucune case cochée : le membre voit tous les chantiers. Sinon, uniquement ceux cochés.
+                    </p>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {chantiers.length === 0 ? (
+                      <p className="text-sm text-white/50">Aucun chantier. Créez-en dans Mes chantiers.</p>
+                    ) : (
+                      chantiers.map((c) => (
+                        <div key={c.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`new-ch-${c.id}`}
+                            checked={newAssignedChantierIds.includes(c.id)}
+                            onCheckedChange={(checked) => {
+                              setNewAssignedChantierIds((prev) =>
+                                checked === true ? [...prev, c.id] : prev.filter((x) => x !== c.id),
+                              );
+                            }}
+                            className="border-white/40 data-[state=checked]:bg-violet-500"
+                          />
+                          <label htmlFor={`new-ch-${c.id}`} className="text-sm text-white/85 cursor-pointer">
+                            {c.nom}
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="login_code" className="text-white/90">
                     Code de connexion *
@@ -251,10 +367,12 @@ export default function TeamPage() {
                   <Input
                     id="login_code"
                     value={newMember.login_code}
-                    onChange={(e) => setNewMember((prev) => ({ ...prev, login_code: e.target.value }))}
+                    onChange={(e) =>
+                      setNewMember((prev) => ({ ...prev, login_code: e.target.value.replace(/\D/g, "").slice(0, 4) }))
+                    }
                     className="bg-black/30 border-white/15 text-white font-mono placeholder:text-white/40"
-                    placeholder="Code à communiquer au collaborateur"
-                    maxLength={10}
+                    placeholder="0000"
+                    maxLength={4}
                     required
                   />
                 </div>
@@ -291,13 +409,6 @@ export default function TeamPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!loading &&
-              members.length > 0 &&
-              members.every((m) => isDemoTeamMemberId(m.id)) && (
-              <p className="text-sm text-amber-200/90 bg-amber-500/10 border border-amber-400/30 rounded-lg px-3 py-2">
-                Exemple d’équipe pour la démo. Avec un compte connecté et des membres dans Supabase, la liste affichera vos vrais collaborateurs.
-              </p>
-            )}
             {loading ? (
               <div className="text-center py-8">
                 <p className="text-white/70">Chargement...</p>
@@ -335,14 +446,14 @@ export default function TeamPage() {
                           )}
                           <div className="flex items-center gap-1 text-xs text-white/60">
                             <Key className="h-3 w-3" />
-                            <span className="font-mono">{member.login_code}</span>
+                            <span className="font-mono">Code sécurisé</span>
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className={member.status === 'actif' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
-                        {member.status === 'actif' ? 'Actif' : 'Inactif'}
+                      <Badge className={(member.status === 'active' || member.status === 'actif') ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                        {(member.status === 'active' || member.status === 'actif') ? 'Actif' : 'Inactif'}
                       </Badge>
                       <Button
                         variant="ghost"
@@ -369,12 +480,24 @@ export default function TeamPage() {
         </Card>
 
         {/* Dialog d'édition */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog
+          open={isEditDialogOpen}
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) {
+              setEditDialogLoading(false);
+              setEditingMember(null);
+            }
+          }}
+        >
           <DialogContent className="bg-[#0f172a]/95 backdrop-blur-xl border border-white/10 text-white rounded-2xl max-w-[min(42rem,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-white text-xl">Modifier le membre</DialogTitle>
             </DialogHeader>
-            {editingMember && (
+            {editDialogLoading && (
+              <p className="text-white/70 py-8 text-center text-sm">Chargement des droits et chantiers…</p>
+            )}
+            {!editDialogLoading && editingMember && (
               <div className="grid gap-4 py-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -448,30 +571,48 @@ export default function TeamPage() {
                   idPrefix="edit"
                 />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-login_code" className="text-white/90">
-                      Code de connexion
-                    </Label>
-                    <Input
-                      id="edit-login_code"
-                      value={editingMember.login_code}
-                      onChange={(e) =>
-                        setEditingMember((prev) => (prev ? { ...prev, login_code: e.target.value } : null))
-                      }
-                      className="bg-black/30 border-white/15 text-white font-mono"
-                      maxLength={10}
-                    />
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
+                  <div>
+                    <Label className="text-white/90">Chantiers visibles pour ce membre</Label>
+                    <p className="text-xs text-white/55 mt-1">
+                      Aucune case cochée : le membre voit tous les chantiers. Sinon, uniquement ceux cochés.
+                    </p>
                   </div>
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {chantiers.length === 0 ? (
+                      <p className="text-sm text-white/50">Aucun chantier.</p>
+                    ) : (
+                      chantiers.map((c) => (
+                        <div key={c.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`edit-ch-${c.id}`}
+                            checked={editAssignedChantierIds.includes(c.id)}
+                            onCheckedChange={(checked) => {
+                              setEditAssignedChantierIds((prev) =>
+                                checked === true ? [...prev, c.id] : prev.filter((x) => x !== c.id),
+                              );
+                            }}
+                            className="border-white/40 data-[state=checked]:bg-violet-500"
+                          />
+                          <label htmlFor={`edit-ch-${c.id}`} className="text-sm text-white/85 cursor-pointer">
+                            {c.nom}
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="edit-status" className="text-white/90">
                       Statut
                     </Label>
                     <Select
-                      value={editingMember.status}
+                      value={editingMember.status === 'actif' ? 'active' : editingMember.status === 'inactif' ? 'inactive' : editingMember.status}
                       onValueChange={(value) =>
                         setEditingMember((prev) =>
-                          prev ? { ...prev, status: value as 'actif' | 'inactif' } : null,
+                          prev ? { ...prev, status: value as 'active' | 'inactive' } : null,
                         )
                       }
                     >
@@ -479,8 +620,8 @@ export default function TeamPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-white/10 text-white">
-                        <SelectItem value="actif">Actif</SelectItem>
-                        <SelectItem value="inactif">Inactif</SelectItem>
+                        <SelectItem value="active">Actif</SelectItem>
+                        <SelectItem value="inactive">Inactif</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -517,9 +658,9 @@ export default function TeamPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-white/70">
-              Dans <span className="text-white/90 font-medium">Mes Chantiers</span>, ouvrez ou créez un chantier
-              et cochez les personnes dans « Équipe sur le chantier ». Les collaborateurs ne voient dans leur
-              espace que les chantiers qui leur sont affectés (liste vide = visible par toute l&apos;équipe).
+              Lorsque vous ajoutez ou modifiez un membre, cochez les chantiers auxquels il doit avoir accès dans
+              son espace collaborateur. Si vous ne cochez rien, il voit <span className="text-white/90 font-medium">tous</span> les chantiers.
+              Vous pouvez aussi affiner par chantier dans <span className="text-white/90 font-medium">Mes chantiers</span> (équipe sur le chantier).
             </p>
           </CardContent>
         </Card>
@@ -529,11 +670,11 @@ export default function TeamPage() {
       <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
         <DialogContent className="bg-black/20 backdrop-blur-xl border border-white/10 text-white rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white">Lien d'invitation créé</DialogTitle>
+            <DialogTitle className="text-white">Membre créé avec succès</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-white/70 text-sm">
-              Partagez ce lien avec le membre d'équipe pour qu'il puisse se connecter :
+              Partagez ce lien avec le membre d&apos;équipe. Il entrera uniquement son code 4 chiffres :
             </p>
             <div className="flex gap-2">
               <Input
@@ -545,7 +686,7 @@ export default function TeamPage() {
                 onClick={() => {
                   if (inviteLink) {
                     navigator.clipboard.writeText(inviteLink);
-                    alert('Lien copié dans le presse-papier !');
+                    toast({ title: "Lien copié", description: "Le lien de connexion a été copié." });
                   }
                 }}
                 className="bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30"
@@ -553,9 +694,48 @@ export default function TeamPage() {
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-xs text-white/50">
-              Le membre devra entrer son code de connexion sur la page d'invitation.
-            </p>
+            <div className="space-y-2">
+              <Label className="text-white/90">Code 4 chiffres (modifiable)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={editableCode}
+                  onChange={(e) => setEditableCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  className="bg-black/20 border-white/10 text-white font-mono tracking-[0.25em] text-center"
+                  maxLength={4}
+                />
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    if (!createdMemberId) return;
+                    if (!/^\d{4}$/.test(editableCode)) {
+                      toast({
+                        title: "Code invalide",
+                        description: "Le code doit contenir exactement 4 chiffres.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    const r = await updateMemberCodeViaApi(createdMemberId, editableCode);
+                    if (!r.ok) {
+                      toast({
+                        title: r.code === "DUPLICATE_CODE" ? "Code déjà utilisé" : "Mise à jour impossible",
+                        description: r.error,
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    setCreatedCode(editableCode);
+                    toast({ title: "Code mis à jour", description: "Le nouveau code a été enregistré." });
+                  }}
+                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                >
+                  Mettre à jour
+                </Button>
+              </div>
+              <p className="text-xs text-white/60">
+                Code initial: <span className="font-mono">{createdCode || "----"}</span>
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={() => setShowInviteModal(false)}>Fermer</Button>
