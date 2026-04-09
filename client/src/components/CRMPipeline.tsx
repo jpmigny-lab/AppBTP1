@@ -2,7 +2,8 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Mail, User, Phone, Calendar, FileText } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Mail, Phone, Search, X } from "lucide-react"
 import { motion } from "framer-motion"
 import { loadCrmColumns, saveCrmColumns } from "@/lib/repositories/appDataRepository"
 
@@ -110,6 +111,7 @@ export function CRMPipeline() {
   const [showFollowupModal, setShowFollowupModal] = useState(false)
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null)
   const [selectedColumn, setSelectedColumn] = useState<string>("")
+  const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     void (async () => {
@@ -237,10 +239,50 @@ export function CRMPipeline() {
     setDraggedItem(null)
   }
 
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const filteredColumns = columns.map((column) => ({
+    ...column,
+    items:
+      normalizedSearch.length === 0
+        ? column.items
+        : column.items.filter((prospect) =>
+            [
+              prospect.name,
+              prospect.email,
+              prospect.phone ?? "",
+              prospect.company ?? "",
+              prospect.notes ?? "",
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(normalizedSearch),
+          ),
+  }))
+
   return (
     <div className="space-y-6">
+      <div className="relative max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Rechercher un prospect (nom, email, entreprise...)"
+          className="pl-9 pr-9 bg-black/20 backdrop-blur-md border-white/20 text-white placeholder:text-white/60"
+        />
+        {searchTerm.trim().length > 0 && (
+          <button
+            type="button"
+            aria-label="Effacer la recherche"
+            onClick={() => setSearchTerm("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {columns.map((column) => (
+        {filteredColumns.map((column) => (
           <Card
             key={column.id}
             className="bg-black/20 backdrop-blur-xl border border-white/10 text-white"
