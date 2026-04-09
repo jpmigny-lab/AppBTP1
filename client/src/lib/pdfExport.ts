@@ -53,14 +53,49 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+function isPdfSafeDataImage(src: string): boolean {
+  const s = src.toLowerCase();
+  return s.startsWith('data:image/png') || s.startsWith('data:image/jpeg') || s.startsWith('data:image/jpg');
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Chargement logo impossible'));
+    img.src = src;
+  });
+}
+
+async function normalizeLogoForPdf(logoBase64: string | null): Promise<string | null> {
+  if (!logoBase64) return null;
+  if (typeof window === 'undefined') return logoBase64;
+  if (isPdfSafeDataImage(logoBase64)) return logoBase64;
+
+  try {
+    const img = await loadImage(logoBase64);
+    const width = Math.max(1, Math.round(img.naturalWidth || img.width || 1));
+    const height = Math.max(1, Math.round(img.naturalHeight || img.height || 1));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL('image/png');
+  } catch {
+    return null;
+  }
+}
+
 export async function envoyerDevisParEmail(state: DevisState): Promise<{ messageId: string }> {
-  // En navigateur, certaines images base64 peuvent casser @react-pdf (Buffer is not defined).
-  // Pour l'envoi email, on génère un PDF sans logo pour fiabiliser le flux.
+  // Normalise le logo pour garder l'image dans le PDF email sans erreurs react-pdf.
+  const safeLogo = await normalizeLogoForPdf(state.emetteur.logoBase64);
   const stateForMail: DevisState = {
     ...state,
     emetteur: {
       ...state.emetteur,
-      logoBase64: null,
+      logoBase64: safeLogo,
     },
   };
   const element = React.createElement(DevisDocument, { state: stateForMail });
