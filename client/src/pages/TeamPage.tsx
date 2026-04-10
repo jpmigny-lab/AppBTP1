@@ -100,6 +100,56 @@ export default function TeamPage() {
     });
   };
 
+  const handleSendMemberAccess = async () => {
+    if (!editingMember?.email) {
+      toast({
+        title: "Email manquant",
+        description: "Renseignez l'email du membre pour envoyer l'accès.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!ownerLoginLink) {
+      toast({
+        title: "Lien indisponible",
+        description: "Impossible de générer le lien de connexion pour le moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const codeToShare = editSecurityCode || memberCodesCache[editingMember.id] || "à définir";
+    const subject = "Votre accès espace équipe AXYOS Renov";
+    const bodyLines = [
+      `Bonjour ${editingMember.name},`,
+      "",
+      "Voici votre lien de connexion :",
+      ownerLoginLink,
+      "",
+      "Votre code de sécurité :",
+      codeToShare,
+    ];
+    const body = bodyLines.join("\n");
+    const mailto = `mailto:${editingMember.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // Ouvre le client email si disponible.
+    window.location.href = mailto;
+
+    // Fallback UX: copie le message pour éviter le “rien ne se passe”.
+    try {
+      await navigator.clipboard.writeText(`${subject}\n\n${body}`);
+      toast({
+        title: "Message préparé",
+        description: "Si votre client mail ne s'ouvre pas, le message a été copié dans le presse-papiers.",
+      });
+    } catch {
+      toast({
+        title: "Ouverture email",
+        description: "Si rien ne s'ouvre, configurez un client mail par défaut sur l'appareil.",
+      });
+    }
+  };
+
   const handleAddMember = async () => {
     if (!newMember.name || !newMember.role || !newMember.email || !newMember.login_code) {
       toast({
@@ -716,22 +766,7 @@ export default function TeamPage() {
                     </Button>
                     <Button
                       type="button"
-                      onClick={() => {
-                        if (!editingMember?.email || !ownerLoginLink) return;
-                        const subject = encodeURIComponent("Votre accès espace équipe AXYOS Renov");
-                        const body = encodeURIComponent(
-                          [
-                            `Bonjour ${editingMember.name},`,
-                            "",
-                            "Voici votre lien de connexion :",
-                            ownerLoginLink,
-                            "",
-                            "Votre code de sécurité :",
-                            editSecurityCode || memberCodesCache[editingMember.id] || "à définir",
-                          ].join("\n"),
-                        );
-                        window.location.href = `mailto:${encodeURIComponent(editingMember.email)}?subject=${subject}&body=${body}`;
-                      }}
+                      onClick={() => void handleSendMemberAccess()}
                       className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white"
                     >
                       <Send className="h-4 w-4 mr-2" />
