@@ -90,18 +90,28 @@ export async function updateMemberCodeViaApi(
   code: string,
 ): Promise<{ ok: true } | { ok: false; code?: string; error: string }> {
   try {
-    const endpoint = `${getApiBase()}/api/team/member/${memberId}/code`;
+    const endpoint = `${getApiBase()}/api/team/member/code`;
     const resp = await fetch(endpoint, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         ...(await getOwnerAuthHeader()),
       },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ memberId, code }),
     });
-    const json = await resp.json().catch(() => null);
+    const raw = await resp.text();
+    let json: { ok?: boolean; code?: string; message?: string } | null = null;
+    try {
+      json = raw ? (JSON.parse(raw) as typeof json) : null;
+    } catch {
+      json = null;
+    }
     if (!resp.ok || !json?.ok) {
-      return { ok: false, code: json?.code, error: json?.message || "Impossible de modifier le code." };
+      const hint =
+        json?.message ||
+        (raw && !raw.startsWith("{") ? raw.slice(0, 240) : null) ||
+        "Impossible de modifier le code.";
+      return { ok: false, code: json?.code, error: hint };
     }
     return { ok: true };
   } catch (e: any) {
