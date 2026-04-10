@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import TeamSidebar from '@/components/TeamSidebar';
@@ -10,7 +9,7 @@ import { Building, Calendar, Clock, ShieldAlert } from 'lucide-react';
 import { useChantiers } from '@/context/ChantiersContext';
 import { useTeamPortalAccess } from '@/hooks/useTeamPortalAccess';
 import { useTeamMemberAuth } from '@/context/TeamMemberContext';
-import { canViewTeamArea, pathForTeamArea, teamAreaFromPath, type TeamPortalArea } from '@/lib/teamPortalAccess';
+import { canViewTeamArea, teamAreaFromPath } from '@/lib/teamPortalAccess';
 import { isChantierVisibleToTeamMember } from '@/lib/chantierAssignments';
 import { readTeamSession } from '@/lib/teamSession';
 
@@ -51,11 +50,6 @@ export default function TeamDashboard() {
   const myChantiers = chantiersPourMoi.filter((c) => c.statut !== 'terminé');
   const chantiersEnCours = chantiersPourMoi.filter((c) => c.statut === 'en cours');
   const chantiersPlanifies = chantiersPourMoi.filter((c) => c.statut === 'planifié');
-
-  const tabClass = (a: TeamPortalArea) =>
-    area === a
-      ? 'bg-white/20 backdrop-blur-md border border-white/10 text-white hover:bg-white/30'
-      : 'text-white hover:bg-white/10';
 
   const showReadOnlyBanner = canView(area) && !canEdit(area);
 
@@ -114,34 +108,6 @@ export default function TeamDashboard() {
                 </div>
               </div>
             </header>
-
-            <div className="bg-black/20 backdrop-blur-xl border-b border-white/10 px-6 rounded-tl-3xl">
-              <div className="flex gap-2 overflow-x-auto py-2">
-                {canView('overview') && (
-                  <Link href={pathForTeamArea('overview')}>
-                    <Button variant="ghost" size="sm" className={tabClass('overview')}>
-                      Vue d&apos;ensemble
-                    </Button>
-                  </Link>
-                )}
-                {canView('projects') && (
-                  <Link href={pathForTeamArea('projects')}>
-                    <Button variant="ghost" size="sm" className={tabClass('projects')}>
-                      <Building className="h-4 w-4 mr-2" />
-                      Mes Chantiers
-                    </Button>
-                  </Link>
-                )}
-                {canView('planning') && (
-                  <Link href={pathForTeamArea('planning')}>
-                    <Button variant="ghost" size="sm" className={tabClass('planning')}>
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Planning
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </div>
 
             <main className="flex-1 p-4 md:p-6 space-y-6 overflow-auto ml-0 md:ml-20">
               {showReadOnlyBanner && (
