@@ -229,12 +229,12 @@ export default function TeamPage() {
   return (
     <PageWrapper>
       <header className="bg-black/20 backdrop-blur-xl border-b border-white/10 px-4 md:px-6 py-4 rounded-tl-3xl ml-0 md:ml-20">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-white">
               Gestion de l'Équipe
             </h1>
-            <p className="text-sm text-white/70">Gérez les membres de votre équipe et leurs codes de connexion</p>
+            <p className="text-sm text-white/70 break-words">Gérez les membres de votre équipe et leurs codes de connexion</p>
           </div>
           <Dialog
             open={isDialogOpen}
@@ -248,7 +248,7 @@ export default function TeamPage() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30">
+              <Button className="w-full sm:w-auto bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30">
                 <Plus className="h-4 w-4 mr-2" />
                 Ajouter un Membre
               </Button>
@@ -424,24 +424,24 @@ export default function TeamPage() {
                 {members.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between p-4 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/30 transition-colors"
+                    className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between p-4 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/30 transition-colors"
                   >
-                    <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
                       <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center">
                         <User className="h-6 w-6 text-white/70" />
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-white">{member.name}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-white truncate">{member.name}</p>
                         <p className="text-sm text-white/70">{member.role}</p>
-                        <div className="flex items-center gap-4 mt-1">
-                          <div className="flex items-center gap-1 text-xs text-white/60">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                          <div className="flex items-center gap-1 text-xs text-white/60 min-w-0">
                             <Mail className="h-3 w-3" />
-                            {member.email}
+                            <span className="truncate max-w-[15rem] sm:max-w-[20rem]">{member.email}</span>
                           </div>
                           {member.phone && (
                             <div className="flex items-center gap-1 text-xs text-white/60">
                               <Phone className="h-3 w-3" />
-                              {member.phone}
+                              <span className="truncate">{member.phone}</span>
                             </div>
                           )}
                           <div className="flex items-center gap-1 text-xs text-white/60">
@@ -451,7 +451,7 @@ export default function TeamPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0 self-end lg:self-auto">
                       <Badge className={(member.status === 'active' || member.status === 'actif') ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
                         {(member.status === 'active' || member.status === 'actif') ? 'Actif' : 'Inactif'}
                       </Badge>
@@ -668,7 +668,7 @@ export default function TeamPage() {
 
       {/* Modal pour afficher le lien d'invitation */}
       <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
-        <DialogContent className="bg-black/20 backdrop-blur-xl border border-white/10 text-white rounded-2xl">
+        <DialogContent className="bg-black/20 backdrop-blur-xl border border-white/10 text-white rounded-2xl max-w-[min(42rem,calc(100vw-2rem))]">
           <DialogHeader>
             <DialogTitle className="text-white">Membre créé avec succès</DialogTitle>
           </DialogHeader>
@@ -676,11 +676,11 @@ export default function TeamPage() {
             <p className="text-white/70 text-sm">
               Partagez ce lien avec le membre d&apos;équipe. Il entrera uniquement son code 4 chiffres :
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 value={inviteLink || ''}
                 readOnly
-                className="bg-black/20 border-white/10 text-white font-mono text-sm"
+                className="bg-black/20 border-white/10 text-white font-mono text-sm min-w-0"
               />
               <Button
                 onClick={() => {
@@ -689,14 +689,14 @@ export default function TeamPage() {
                     toast({ title: "Lien copié", description: "Le lien de connexion a été copié." });
                   }
                 }}
-                className="bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30"
+                className="w-full sm:w-auto bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30"
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
             <div className="space-y-2">
               <Label className="text-white/90">Code 4 chiffres (modifiable)</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   value={editableCode}
                   onChange={(e) => setEditableCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
@@ -727,7 +727,7 @@ export default function TeamPage() {
                     setCreatedCode(editableCode);
                     toast({ title: "Code mis à jour", description: "Le nouveau code a été enregistré." });
                   }}
-                  className="bg-violet-600 hover:bg-violet-500 text-white"
+                  className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white"
                 >
                   Mettre à jour
                 </Button>
