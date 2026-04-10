@@ -32,6 +32,7 @@ import {
 } from '@/lib/teamMemberPermissions';
 
 export default function TeamPage() {
+  const MEMBER_CODES_CACHE_KEY = 'team_member_codes_cache_v1';
   const { toast } = useToast();
   const { chantiers } = useChantiers();
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -78,6 +79,25 @@ export default function TeamPage() {
   const [newAssignedChantierIds, setNewAssignedChantierIds] = useState<string[]>([]);
   const [editAssignedChantierIds, setEditAssignedChantierIds] = useState<string[]>([]);
   const [editDialogLoading, setEditDialogLoading] = useState(false);
+  const [editSecurityCode, setEditSecurityCode] = useState('');
+  const [memberCodesCache, setMemberCodesCache] = useState<Record<string, string>>(() => {
+    try {
+      const raw = localStorage.getItem(MEMBER_CODES_CACHE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw) as Record<string, string>;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const updateMemberCodesCache = (memberId: string, code: string) => {
+    setMemberCodesCache((prev) => {
+      const next = { ...prev, [memberId]: code };
+      localStorage.setItem(MEMBER_CODES_CACHE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const handleAddMember = async () => {
     if (!newMember.name || !newMember.role || !newMember.email || !newMember.login_code) {
@@ -143,6 +163,7 @@ export default function TeamPage() {
     setCreatedCode(newMember.login_code.trim());
     setEditableCode(newMember.login_code.trim());
     setCreatedMemberId(result.member.id);
+    updateMemberCodesCache(result.member.id, newMember.login_code.trim());
     await loadMembers();
     setNewMember({ name: '', role: '', email: '', phone: '', login_code: '' });
     setNewPermissions(createFullAccessPermissions());
@@ -152,6 +173,7 @@ export default function TeamPage() {
 
   const handleEditMember = async (member: TeamMember) => {
     setEditingMember(member);
+    setEditSecurityCode(memberCodesCache[member.id] || member.login_code || '');
     setIsEditDialogOpen(true);
     setEditDialogLoading(true);
     const [pr, cr] = await Promise.all([
@@ -197,6 +219,28 @@ export default function TeamPage() {
         variant: "destructive",
       });
       return;
+    }
+
+    const normalizedCode = editSecurityCode.trim();
+    if (normalizedCode) {
+      if (!/^\d{4}$/.test(normalizedCode)) {
+        toast({
+          title: "Code invalide",
+          description: "Le code membre doit contenir exactement 4 chiffres.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const codeSave = await updateMemberCodeViaApi(editingMember.id, normalizedCode);
+      if (!codeSave.ok) {
+        toast({
+          title: codeSave.code === "DUPLICATE_CODE" ? "Code déjà utilisé" : "Code non sauvegardé",
+          description: codeSave.error,
+          variant: "destructive",
+        });
+        return;
+      }
+      updateMemberCodesCache(editingMember.id, normalizedCode);
     }
 
     const permSave = await replaceTeamMemberPermissions(editingMember.id, editPermissions);
@@ -446,7 +490,9 @@ export default function TeamPage() {
                           )}
                           <div className="flex items-center gap-1 text-xs text-white/60">
                             <Key className="h-3 w-3" />
-                            <span className="font-mono">Code sécurisé</span>
+                            <span className="font-mono">
+                              {memberCodesCache[member.id] || member.login_code || "----"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -625,6 +671,19 @@ export default function TeamPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-security-code" className="text-white/90">
+                      Code de sécurité (4 chiffres)
+                    </Label>
+                    <Input
+                      id="edit-security-code"
+                      value={editSecurityCode}
+                      onChange={(e) => setEditSecurityCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      className="bg-black/30 border-white/15 text-white font-mono"
+                      placeholder="0000"
+                      maxLength={4}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -725,6 +784,7 @@ export default function TeamPage() {
                       return;
                     }
                     setCreatedCode(editableCode);
+                    if (createdMemberId) updateMemberCodesCache(createdMemberId, editableCode);
                     toast({ title: "Code mis à jour", description: "Le nouveau code a été enregistré." });
                   }}
                   className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white"
