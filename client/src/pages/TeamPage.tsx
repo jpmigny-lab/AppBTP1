@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Plus, User, Mail, Phone, Trash2, Building, Key, Edit2, Copy } from 'lucide-react';
+import { Users, Plus, User, Mail, Phone, Trash2, Building, Key, Edit2, Copy, Send } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useChantiers } from '@/context/ChantiersContext';
@@ -80,6 +80,7 @@ export default function TeamPage() {
   const [editAssignedChantierIds, setEditAssignedChantierIds] = useState<string[]>([]);
   const [editDialogLoading, setEditDialogLoading] = useState(false);
   const [editSecurityCode, setEditSecurityCode] = useState('');
+  const [ownerLoginLink, setOwnerLoginLink] = useState<string>('');
   const [memberCodesCache, setMemberCodesCache] = useState<Record<string, string>>(() => {
     try {
       const raw = localStorage.getItem(MEMBER_CODES_CACHE_KEY);
@@ -174,6 +175,12 @@ export default function TeamPage() {
   const handleEditMember = async (member: TeamMember) => {
     setEditingMember(member);
     setEditSecurityCode(memberCodesCache[member.id] || member.login_code || '');
+    const slug = await fetchOwnerSlug();
+    if (slug.ok) {
+      setOwnerLoginLink(`${window.location.origin}/team-login/${slug.ownerSlug}`);
+    } else {
+      setOwnerLoginLink('');
+    }
     setIsEditDialogOpen(true);
     setEditDialogLoading(true);
     const [pr, cr] = await Promise.all([
@@ -533,6 +540,7 @@ export default function TeamPage() {
             if (!open) {
               setEditDialogLoading(false);
               setEditingMember(null);
+              setOwnerLoginLink('');
             }
           }}
         >
@@ -684,6 +692,55 @@ export default function TeamPage() {
                       maxLength={4}
                     />
                   </div>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
+                  <Label className="text-white/90">Lien de connexion membre</Label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      value={ownerLoginLink}
+                      readOnly
+                      className="bg-black/20 border-white/10 text-white font-mono text-sm min-w-0"
+                      placeholder="Lien indisponible"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (!ownerLoginLink) return;
+                        navigator.clipboard.writeText(ownerLoginLink);
+                        toast({ title: "Lien copié", description: "Le lien de connexion a été copié." });
+                      }}
+                      className="w-full sm:w-auto bg-white/20 backdrop-blur-md text-white border border-white/10 hover:bg-white/30"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (!editingMember?.email || !ownerLoginLink) return;
+                        const subject = encodeURIComponent("Votre accès espace équipe AXYOS Renov");
+                        const body = encodeURIComponent(
+                          [
+                            `Bonjour ${editingMember.name},`,
+                            "",
+                            "Voici votre lien de connexion :",
+                            ownerLoginLink,
+                            "",
+                            "Votre code de sécurité :",
+                            editSecurityCode || memberCodesCache[editingMember.id] || "à définir",
+                          ].join("\n"),
+                        );
+                        window.location.href = `mailto:${encodeURIComponent(editingMember.email)}?subject=${subject}&body=${body}`;
+                      }}
+                      className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Envoyer
+                    </Button>
+                  </div>
+                  <p className="text-xs text-white/60">
+                    Le lien reste identique pour tous vos membres ({`/team-login/{votre-slug}`}); seul le code change.
+                  </p>
                 </div>
               </div>
             )}
